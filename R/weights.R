@@ -15,16 +15,39 @@ phylo_average = function(
   if (!(class(phy) %in% c("phylo", "multiPhylo"))) {
     stop("phy must be of class phylo or multiPhylo.")
   }
-  if (!is.data.frame(data_Fig2)) {
+  if (!is.data.frame(data)) {
     stop("data must be a data.frame.")
   }
-  
   
   # Convert phy to multiPhlyo
   phy_original <- phy
   if (class(phy) == "phylo") { phy <- c(phy) }
   n_tree <- length(phy)
   
+  # Check data contents
+  col_name <- colnames(data)
+  if (!("language" %in% col_name)) {
+    stop("data must contain a column named 'language'.")
+  }
+  
+  is_num_col <- 
+    sapply(1:ncol(data), 
+           function(i) is.numeric(data[,i]))
+  if (sum(is_num_col) == 0) {
+    stop("data must contain at least numeric column.")
+  }
+  
+  is_extra_col <- !is_num_col & (col_name != "language")
+  if (any(is_extra_col)) {
+    warning(
+      str_c("data contains non-numeric columns other than",
+            " 'language', which have been ignored: ",
+            str_c(head(col_name[is_extra_col]), collapse = ", "),
+            ifelse(sum(is_extra_col) > 6, "...", "")
+            )
+      )
+  }
+  data$.tip.label = .add_copy_suffix(data$language)
   
   # Check phy contents
   for (i in 1:n_tree) {
@@ -35,89 +58,77 @@ phylo_average = function(
       stop(paste("phy[[", i , "]] has at least one ",
                  "undefined branch length.", sep = ""))       
     }
-  }
-  
-  
-  # Check data contents
-  if (!("language" %in% colnames(data))) {
-    stop("data must contain a column named 'language'.")
-  }
-  data$language <- as.character(data$language)
-  if (any(duplicated(data$language))) {
-    stop("data contains duplicate labels in column 'language'.")
-  }
-  data <- data %>% arrange(language)
-  if (ncol(data) < 2) {
-    stop("data must contain at least one column other than 'language'.")
-  }
-  for (i in 1:ncol(data)) {
-    if (colnames(data)[i] == "language") { next }
-    if (!is.numeric(data[, i])) {
-      stop(paste("Column", i , "of data is not ",
-                 "numeric but should be.", sep = ""))
+    if (Ntip(phy[[i]]) != nrow(data)) {
+      stop(
+        str_c("Number of tips in phy[[", i, "]] ",
+              "differs from the number of rows in data")
+      )
+    }
+    phy[[i]]$tip.label <- .add_copy_suffix(phy[[i]]$tip.label)
+    if (any(sort(data$.tip.label) != sort(phy[[i]]$tip.label))) {
+      stop(
+        str_c("Tip labels do not match data$language ",
+              "in phy[[", i, "]]")
+      )
+    }
+    nonsister_copies <- which_nonsister_copies(phy[[i]])
+    if (length(nonsister_copies) > 0) {
+      stop(
+        str_c("Trees can contain duplicate tip labels, ",
+              "but only if the tips are sisters with ",
+              "identical branch lengths above them. This ",
+              "is not true in phy[[", i, "]] for sisters: ",
+              str_c(sort(nonsister_copies), collapse = ", "))
+      )
     }
   }
-  
-  
-  # Check that languages match if phy and data
-  for (i in 1:n_tree) {
-    tips <- phy[[i]]$tip.label
-    missing_tips  <- setdiff(data$language, tips)
-    missing_langs <- setdiff(tips, data$language)
-    if (length(missing_tips) > 0) {
-      stop(paste("The following languages are in ",
-                 "data but not in phy[[", i , "]]: ",
-                 paste(missing_tips, collapse = ", "), 
-                 sep = ""))
-    }
-    if (length(missing_langs) > 0) {
-      stop(paste("The following languages are in phy[[", 
-                 i , "]] but not in data: ",
-                 paste(missing_langs, collapse = ", "), 
-                 sep = ""))
-    }
-  }
-  
   
   # Get weights
-  ACL_weights <- BM_weights <-
-    data.frame(language = tips, stringsAsFactors = FALSE)
+  ACL_weights <- BM_weights <- data %>% select(.tip.label)
   for (i in 1:length(phy)) {
-    ACL_i <- data.frame(x = ACL(phy[[i]]))
-    BM_i  <- data.frame(x = BM(phy[[i]]))
-    colnames(ACL_i) <- colnames(BM_i) <- 
-      paste("tree", i, sep = "")
-    ACL_weights <- bind_cols(ACL_weights, ACL_i)
-    BM_weights  <- bind_cols(BM_weights,  BM_i)
+    ACL_i <- data.frame(x = ACL(phy[[i]]), 
+                        .tip.label = phy[[i]]$tip.label)
+    BM_i  <- data.frame(x = BM(phy[[i]]),
+                        .tip.label = phy[[i]]$tip.label)
+    colnames(ACL_i)[1] <- colnames(BM_i)[1] <-  str_c("tree", i)
+    ACL_weights <- left_join(ACL_weights, ACL_i, by = ".tip.label")
+    BM_weights  <- left_join(BM_weights,  BM_i, by = ".tip.label")
   }
   
-  
   # Calculate averages using matrix multiplication
-  data_mat <- t(as.matrix(data %>% select(-language)))
-  ACL_mat <- as.matrix(ACL_weights %>% select(-language))
-  BM_mat  <- as.matrix(BM_weights  %>% select(-language))
+  data_mat <- t(as.matrix(data[, is_num_col]))
+  ACL_mat <- as.matrix(ACL_weights %>% select(-.tip.label))
+  BM_mat  <- as.matrix(BM_weights  %>% select(-.tip.label))
   ACL_ave_mat <- t(data_mat %*% ACL_mat)
   BM_ave_mat  <- t(data_mat %*% BM_mat)
   
   # Prepare results as dataframes
   ACL_averages <- 
     as.data.frame(ACL_ave_mat) %>%
-    mutate(tree = paste("tree", 1:n_tree, sep = "")) %>%
+    mutate(tree = str_c("tree", 1:n_tree)) %>%
     select(tree, everything())
   BM_averages <- 
     as.data.frame(BM_ave_mat) %>%
-    mutate(tree = paste("tree", 1:n_tree, sep = "")) %>%
+    mutate(tree = str_c("tree", 1:n_tree)) %>%
     select(tree, everything())
   rownames(ACL_averages) <- 
     rownames(BM_averages) <- 
     rownames(ACL_weights) <-
     rownames(BM_weights) <-
     NULL
+  ACL_weights <- 
+    left_join(data[, !is_num_col], 
+              ACL_weights, by = ".tip.label") %>%
+    select(-.tip.label)
+  BM_weights <- 
+    left_join(data[, !is_num_col], 
+              BM_weights, by = ".tip.label") %>%
+    select(-.tip.label)
   
   # Return results
   list(
     phy  = phy_original,
-    data = data,
+    data = data %>% select(-.tip.label),
     ACL_weights  = ACL_weights,
     BM_weights   = BM_weights,
     ACL_averages = ACL_averages,

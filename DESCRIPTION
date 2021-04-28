@@ -1,11 +1,11 @@
 Package: PhyloWeights
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Calculation of Genealogically-sensitive Proportions and Averages in Linguistics
 Version: 0.0.9000
 Author: Erich Round
 Maintainer: Erich Round <e.round@uq.edu.au>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Description: Calculation of genealogically-sensitive proportions and averages, and
+    preparation of phylogenetic trees by adapting resources from glottolog.com.
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
@@ -16,10 +16,11 @@ Imports:
     stringr,
     tidyr
 Collate: 
+    'branch_lengths.R'
     'data.R'
+    'labels.R'
+    'metadata.R'
     'Ruihua.R'
-    'supertree.R'
-    'tabulating_glottolog.R'
-    'tree_manipulation.R'
+    'topology.R'
     'weights.R'
 RoxygenNote: 6.0.1

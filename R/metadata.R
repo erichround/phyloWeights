@@ -3,7 +3,7 @@
 #'   glottocode, isocode, name, 
 #'   name_in_tree, position,
 #'   tree, tree_name
-glottolog_metadata = function() {
+glottolog_languages = function() {
   glottolog_phylo_geo_v4.3 %>%
     select(
       glottocode,
@@ -21,6 +21,16 @@ glottolog_metadata = function() {
 #' @return A dataframe with columns
 #'   tree, tree_name
 glottolog_families = function() {
+  main_macro <-
+    glottolog_phylo_geo_v4.3 %>%
+    filter(!is.na(tree)) %>%
+    group_by(tree, macroarea) %>%
+    summarise(n = n()) %>%
+    group_by(tree) %>%
+    arrange(-n) %>%
+    slice(1) %>%
+    select(tree, main_macroarea = macroarea)
+  
   glottolog_phylo_geo_v4.3 %>%
     select(
       tree = tree,
@@ -34,23 +44,6 @@ glottolog_families = function() {
       n_nodes = sum(vertex_type == "node")
       ) %>%
     arrange(tree) %>%
+    left_join(main_macro, by = "tree") %>%
     as.data.frame()
-}
-
-
-#' Extract parts from a glottolog tree label
-#' @param label A string
-#' @return A string
-extract_name = function(labels) {
-  regex <- "^[^\\[]+"
-  str_extract(labels, regex)
-}
-
-
-#' Extract parts from a glottolog tree label
-#' @param label A string
-#' @return A string
-extract_glottocode = function(labels) {
-  regex <- "(?<=\\[)[a-z]{4}[0-9]{4}(?=\\])"
-  str_extract(labels, regex)
 }

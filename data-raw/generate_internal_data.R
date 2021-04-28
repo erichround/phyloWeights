@@ -7,7 +7,7 @@
 #'   nodes, tips, and their geo information
 tabulate_language_geo = function(
   phy = glottolog_trees_v4.3,
-  geo = languages_and_dialects_geo
+  geo = glottolog_geography_v4.3
 ) {
   
   # Compile a table of vertices in trees
@@ -34,10 +34,7 @@ tabulate_language_geo = function(
   # Add a column vertex_name, the equivalent of name
   # that we'd expect to see in a vertex label
   geo <- geo %>%
-    mutate(vertex_name = name %>% 
-             str_remove_all("[' ]") %>%
-             str_replace_all("\\(", "{") %>%
-             str_replace_all("\\)", "}"))
+    mutate(vertex_name = .name_to_label(name))
   
   # Combine the geo and vertex info
   full_join(
@@ -102,4 +99,13 @@ tabulate_family_geo = function(
       all_macroareas = str_c(macroarea_n, collapse = ", ")
     ) %>% 
     arrange(tree)
+}
+
+
+#' Extract parts from a glottolog tree label
+#' @param label A string
+#' @return A string
+extract_name = function(labels) {
+  regex <- "^[^\\[]+"
+  str_extract(labels, regex)
 }
