@@ -32,9 +32,9 @@ phylo_average = function(
   
   is_num_col <- 
     sapply(1:ncol(data), 
-           function(i) is.numeric(data[,i]))
+           function(i) is.numeric(as.data.frame(data)[,i]))
   if (sum(is_num_col) == 0) {
-    stop("data must contain at least numeric column.")
+    stop("data must contain at least one numeric column.")
   }
   
   is_extra_col <- !is_num_col & (col_name != "language")
@@ -111,6 +111,9 @@ phylo_average = function(
     as.data.frame(BM_ave_mat) %>%
     mutate(tree = str_c("tree", 1:n_tree)) %>%
     select(tree, everything())
+  colnames(ACL_averages) <-
+    colnames(BM_averages) <-
+    c("tree", colnames(data)[is_num_col])
   rownames(ACL_averages) <- 
     rownames(BM_averages) <- 
     rownames(ACL_weights) <-
@@ -176,9 +179,7 @@ BM <- function(phy) {
     totallength <- totallength + curedgelen
   }
   W <- W/totallength
-  ###
-  
-  W[order(names(W))]
+  W
 }
 
 
