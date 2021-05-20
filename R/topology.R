@@ -304,7 +304,7 @@ clone_tip = function(phy, label) {
 #' @param phy A phylo object
 #' @param label A string, the labels
 #'   of the nodes to collapse
-#' @reutrn A phylo object
+#' @return A phylo object
 collapse_node = function(phy, label) {
   
   n_tips <- length(phy$tip.label)

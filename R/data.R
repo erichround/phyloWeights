@@ -14,10 +14,10 @@
 #' A dataset of geographical information about the
 #' languages in glottolog.
 #'
-#' @format A dataframe
+#' @format A dataframe:
 #' \describe{
-#'   \item{glottocode}{}
-#'   \item{name}{name the lect}
+#'   \item{glottocode}{glottocode of the lect}
+#'   \item{name}{name of the lect}
 #'   \item{isocodes}{the ISO-639-3 code of the lect}
 #'   \item{level}{"language" or "dialect"}
 #'   \item{macroarea}{glottolog's geographical macroarea}
@@ -40,12 +40,12 @@
 #' Australian Linguistic Society, Brisbane. 
 #' https://als.asn.au/Conference/Program
 #'
-#' @format A dataframe
-#' @source Yin (2020)
+#' @format A dataframe:
 #' \describe{
-#'   \item{name}{name the lect}
-#'   \item{glottocode}{}
+#'   \item{name}{name of the lect}
+#'   \item{glottocode}{glottocode of the lect}
 #'   \item{onset_violation}{presence (1) or absence (0) of word-initial SSP violation}
-#'   \item{coda_violation}{presence (1) or absence (0) of word-final SSP violation}
+#'   \item{coda_violation}{presence (1) or absence (0) of word-final SSP violation}}
+#' @source Yin (2020)
 #'   
 "yin_2020_data"

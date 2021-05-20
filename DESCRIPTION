@@ -1,12 +1,12 @@
 Package: PhyloWeights
 Type: Package
 Title: Calculation of Genealogically-sensitive Proportions and Averages in Linguistics
-Version: 0.0.9000
+Version: 0.1.0000
 Author: Erich Round
 Maintainer: Erich Round <e.round@uq.edu.au>
 Description: Calculation of genealogically-sensitive proportions and averages, and
     preparation of phylogenetic trees by adapting resources from glottolog.com.
-License: What license is it under?
+License: CC-BY
 Encoding: UTF-8
 LazyData: true
 Imports:
@@ -20,7 +20,6 @@ Collate:
     'data.R'
     'labels.R'
     'metadata.R'
-    'Ruihua.R'
     'topology.R'
     'weights.R'
-RoxygenNote: 6.0.1
+RoxygenNote: 7.1.0
