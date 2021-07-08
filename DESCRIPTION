@@ -1,7 +1,7 @@
 Package: PhyloWeights
 Type: Package
 Title: Calculation of Genealogically-sensitive Proportions and Averages in Linguistics
-Version: 0.1.0000
+Version: 0.1.0001
 Author: Erich Round
 Maintainer: Erich Round <e.round@uq.edu.au>
 Description: Calculation of genealogically-sensitive proportions and averages, and
