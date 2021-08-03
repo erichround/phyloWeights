@@ -1,10 +1,15 @@
 #' Simple metadata table
+#' @param glottolog_version A character
+#'   string. Which glottolog version to
+#'   use.
 #' @return A dataframe with columns
 #'   glottocode, isocode, name, 
 #'   name_in_tree, position,
 #'   tree, tree_name
-glottolog_languages = function() {
-  glottolog_phylo_geo_v4.3 %>%
+glottolog_languages = function(
+  glottolog_version = "4.4"
+) {
+  get_glottolog_phylo_geo(glottolog_version) %>%
     select(
       glottocode,
       isocode = isocodes,
@@ -18,11 +23,16 @@ glottolog_languages = function() {
 
 
 #' Simple metadata table
+#' @param glottolog_version A character
+#'   string. Which glottolog version to
+#'   use.
 #' @return A dataframe with columns
 #'   tree, tree_name
-glottolog_families = function() {
+glottolog_families = function(
+  glottolog_version = "4.4"
+) {
   main_macro <-
-    glottolog_phylo_geo_v4.3 %>%
+    get_glottolog_phylo_geo(glottolog_version) %>%
     filter(!is.na(tree)) %>%
     group_by(tree, macroarea) %>%
     summarise(n = n()) %>%
@@ -31,7 +41,7 @@ glottolog_families = function() {
     slice(1) %>%
     select(tree, main_macroarea = macroarea)
   
-  glottolog_phylo_geo_v4.3 %>%
+  get_glottolog_phylo_geo(glottolog_version) %>%
     select(
       tree = tree,
       tree_name = family_name,
@@ -46,4 +56,32 @@ glottolog_families = function() {
     arrange(tree) %>%
     left_join(main_macro, by = "tree") %>%
     as.data.frame()
+}
+
+
+#' Glottolog geographical data by version
+#' 
+#' @param glottolog_version A character
+#'   string. Which glottolog version to
+#'   use.
+#' @return A multiPhylo object, the
+#'   glottolog trees of the corresponding
+#'   version.
+get_glottolog_phylo_geo = function(
+  glottolog_version = "4.4"
+) {
+  
+  if (is.numeric(glottolog_version[1])) {
+    glottolog_version <- as.character(glottolog_version)
+  }
+  
+  if (glottolog_version == "4.3") {
+    phylo_geo <- get_glottolog_phylo_geo_v4.3
+  } else if (glottolog_version == "4.4") {
+    phylo_geo <- get_glottolog_phylo_geo_v4.4
+  } else {
+    stop("Available values for glottolog_version are '4.3' and '4.4'.")
+  }
+  
+  phylo_geo
 }

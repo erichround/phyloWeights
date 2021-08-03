@@ -72,11 +72,15 @@ bind_as_rake = function(phy) {
 
 #' Create a glottolog super-tree
 #' @param macro_groups A list
+#' @param glottolog_version A character
+#'   string. Which glottolog version to
+#'   use.
 glottolog_supertree = function(
-  macro_groups = as.list(unique(glottolog_families()$main_macroarea))
+  macro_groups = as.list(unique(glottolog_families()$main_macroarea)),
+  glottolog_version = "4.4"
 ) {
   
-  phy <- glottolog_trees_v4.3
+  phy <- get_glottolog_trees(glottolog_version)
   
   # Get the predominant macro_area for each tree
   main_macro <- glottolog_families()$main_macroarea
@@ -293,7 +297,32 @@ clone_tip = function(phy, label) {
 }
 
 
-
+#' Glottolog trees by version
+#' 
+#' @param glottolog_version A character
+#'   string. Which glottolog version to
+#'   use.
+#' @return A multiPhylo object, the
+#'   glottolog trees of the corresponding
+#'   version.
+get_glottolog_trees = function(
+  glottolog_version = "4.4"
+) {
+  
+  if (is.numeric(glottolog_version[1])) {
+    glottolog_version <- as.character(glottolog_version)
+  }
+  
+  if (glottolog_version == "4.3") {
+    phy <- glottolog_trees_v4.3
+  } else if (glottolog_version == "4.4") {
+    phy <- glottolog_trees_v4.4
+  } else {
+    stop("Available values for glottolog_version are '4.3' and '4.4'.")
+  }
+  
+  phy
+}
 
 
 #' Collapse a node rootwards

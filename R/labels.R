@@ -56,8 +56,14 @@ label_by_glottocode = function(phy) {
 #' Change glottocode tip and node labels to names
 #' 
 #' @param phy A phylo object
+#' @param glottolog_version A character
+#'   string. Which glottolog version to
+#'   use.
 #' @return A phylo object
-label_by_name = function(phy) {
+label_by_name = function(
+  phy,
+  glottolog_version = "4.4"
+) {
   
   tip_labels <- .get_tip_labels(phy)
   node_labels <- .get_node_labels(phy)
@@ -75,7 +81,7 @@ label_by_name = function(phy) {
       glotto_base = .remove_copy_suffix(glottocode)
     ) %>%
     left_join(
-      glottolog_phylo_geo_v4.3 %>%
+      get_glottolog_phylo_geo(glottolog_version) %>%
         select(glotto_base = glottocode, 
                name_base = vertex_name),
       by = "glotto_base"
