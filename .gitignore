@@ -2,3 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+.DS_Store
+rtree.tree
+rtree2.tree
+rtree_names.tree
