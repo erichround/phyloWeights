@@ -1,9 +1,9 @@
 # Setting branch lengths
 
-#' Set lengths of first branches
+#' Set lengths of deepest branches
 #' @param phy A phlyo object
 #' @return A phlyo object
-set_first_branch_lengths = function(phy, branch_length = 1) {
+set_deepest_branch_lengths = function(phy, branch_length = 1) {
   
   root <- Ntip(phy) + 1
   first_edges <- which(phy$edge[,1] == root)
@@ -28,7 +28,7 @@ set_branch_lengths_1 = function(phy) {
 #' Exponentialise branch lengths
 #' @param phy A phylo object
 #' @return A phylo object
-set_branch_lengths_exp = function(phy, ultrametric = FALSE) {
+set_branch_lengths_exp = function(phy) {
   
   nonroot <- phy$edge[,2]
   
@@ -42,10 +42,10 @@ set_branch_lengths_exp = function(phy, ultrametric = FALSE) {
 }
 
 
-#' Ultrametricise tree by stretching final edges
+#' Ultrametricize tree by stretching final edges
 #' @param phy A phylo object
 #' @return A phylo object
-ultrametricise = function(phy) {
+ultrametricize = function(phy) {
   
   if (any(is.na(phy$edge.length))) {
     warning("Converting NA branch lengths to 1")
@@ -61,3 +61,9 @@ ultrametricise = function(phy) {
   
   phy
 }
+
+
+#' Ultrametricize tree by stretching final edges
+#' @param phy A phylo object
+#' @return A phylo object
+ultrametricise = ultrametricize

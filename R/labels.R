@@ -7,7 +7,7 @@
 #' 
 #' @param phy A phylo or multiPhylo object
 #' @return A phylo object
-label_by_glottocode = function(phy) {
+abridge_labels = function(phy) {
   
   tip_orig <- .get_tip_labels(phy)
   node_orig <- .get_node_labels(phy)
@@ -60,9 +60,9 @@ label_by_glottocode = function(phy) {
 #'   string. Which glottolog version to
 #'   use.
 #' @return A phylo object
-label_by_name = function(
+relabel_with_names = function(
   phy,
-  glottolog_version = "4.4"
+  glottolog_version = get_glottolog_version()
 ) {
   
   tip_labels <- .get_tip_labels(phy)

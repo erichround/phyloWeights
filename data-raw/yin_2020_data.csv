@@ -1,4 +1,4 @@
-"","name","glottocode","onset_violation","coda_violation"
+"","name","glottocode","has_onset_violation","has_coda_violation"
 "1","Abkhaz","abkh1244",1,1
 "2","Abui","abui1241",0,0
 "3","Achagua","acha1250",0,1

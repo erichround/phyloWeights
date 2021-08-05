@@ -1,5 +1,49 @@
 # Manipulating tree topoplogy
 
+
+#' Glottolog trees by version
+#' 
+#' @param family A character string.
+#'   Which families' trees to return. If left
+#'   unspecified, all trees are returned.
+#' @param glottolog_version A character
+#'   string. Which glottolog version to
+#'   use.
+#' @return A multiPhylo object, the
+#'   glottolog trees of the corresponding
+#'   version; unless just one tree was
+#'   requested, in which case the return
+#'   is a phylo object of just one tree.
+get_glottolog_trees = function(
+  family = NULL,
+  glottolog_version = get_glottolog_version()
+) {
+  
+  if (is.numeric(glottolog_version[1])) {
+    glottolog_version <- as.character(glottolog_version)
+  }
+  
+  if (glottolog_version == "4.3") {
+    phy <- glottolog_trees_v4.3
+  } else if (glottolog_version == "4.4") {
+    phy <- glottolog_trees_v4.4
+  } else {
+    stop("Available values for glottolog_version are '4.3' and '4.4'.")
+  }
+  
+  if (is.null(family)) { return(phy) }
+  
+  # Select the requested subset of the families
+  phy <- phy[which_tree(family)]
+  
+  if (length(phy) == 1) { 
+    phy[[1]]
+  } else {
+    phy
+  }
+}
+
+
 #' Bind trees with high-level rake
 #' @param phy A multiphylo object
 #' @return A phylo object, a single tree
@@ -75,15 +119,17 @@ bind_as_rake = function(phy) {
 #' @param glottolog_version A character
 #'   string. Which glottolog version to
 #'   use.
-glottolog_supertree = function(
-  macro_groups = as.list(unique(glottolog_families()$main_macroarea)),
-  glottolog_version = "4.4"
+assemble_supertree = function(
+  macro_groups = 
+    as.list(unique(get_glottolog_families(glottolog_version)$main_macroarea)),
+  glottolog_version = get_glottolog_version()
 ) {
   
-  phy <- get_glottolog_trees(glottolog_version)
+  phy <- get_glottolog_trees(glottolog_version = glottolog_version)
   
   # Get the predominant macro_area for each tree
-  main_macro <- glottolog_families()$main_macroarea
+  main_macro <- 
+    get_glottolog_families(glottolog_version)$main_macroarea
   
   # Group family trees by macroarea
   if (is.null(macro_groups)) {
@@ -113,7 +159,7 @@ glottolog_supertree = function(
 #' @param phy A phylo object
 #' @param labels A vector of strings,
 #'   which are tip and node labels
-keep_tips = function(phy, label) {
+select_tips = function(phy, label) {
   
   tip_labels <- phy$tip.label
   node_labels <- phy$node.label
@@ -131,39 +177,6 @@ keep_tips = function(phy, label) {
   # nodes newly cloned as tips
   dup_tips <- label[duplicated(label)]
   phy <- clone_tip(phy, dup_tips)
-  
-  phy
-}
-
-
-#' Clone named nodes to self-daughter tips
-#' 
-#' A node is cloned once, even if listed
-#' more than once in labels
-#' 
-#' @param phy A phlyo object
-#' @param label A vector of strings,
-#'   the labels of the nodes to clone
-#' @return phy
-clone_node_old = function(phy, label) {
-  
-  node_labels <- label[label %in% phy$node.label]
-  
-  if (length(node_labels) == 0) { return(phy) }
-  
-  for (l in unique(node_labels)) {
-    # clone one node 
-    n_tips <- length(phy$tip.label)
-    location <- which(phy$node.label == l) + n_tips
-    phy <-
-      phy %>%
-      bind.tip(edge.length = 1, 
-               tip.label = l,
-               where = location)
-  }
-  
-  phy$tip.label <- .add_copy_suffix(phy$tip.label)
-  phy$node.label <- .add_copy_suffix(phy$node.label)
   
   phy
 }
@@ -297,34 +310,6 @@ clone_tip = function(phy, label) {
 }
 
 
-#' Glottolog trees by version
-#' 
-#' @param glottolog_version A character
-#'   string. Which glottolog version to
-#'   use.
-#' @return A multiPhylo object, the
-#'   glottolog trees of the corresponding
-#'   version.
-get_glottolog_trees = function(
-  glottolog_version = "4.4"
-) {
-  
-  if (is.numeric(glottolog_version[1])) {
-    glottolog_version <- as.character(glottolog_version)
-  }
-  
-  if (glottolog_version == "4.3") {
-    phy <- glottolog_trees_v4.3
-  } else if (glottolog_version == "4.4") {
-    phy <- glottolog_trees_v4.4
-  } else {
-    stop("Available values for glottolog_version are '4.3' and '4.4'.")
-  }
-  
-  phy
-}
-
-
 #' Collapse a node rootwards
 #' 
 #' Note this will also multichotomise
@@ -348,7 +333,7 @@ collapse_node = function(phy, label) {
 }
 
 
-which_nonsister_copies = function(phy) {
+.which_nonsister_copies = function(phy) {
   # Sister nodes in edge[,2] will share a
   # parent in edge[,1]. Check if this is true, 
   # and that the branch lengths are equal.

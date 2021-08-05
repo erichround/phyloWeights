@@ -71,7 +71,7 @@ phylo_average = function(
               "in phy[[", i, "]]")
       )
     }
-    nonsister_copies <- which_nonsister_copies(phy[[i]])
+    nonsister_copies <- .which_nonsister_copies(phy[[i]])
     if (length(nonsister_copies) > 0) {
       stop(
         str_c("Trees can contain duplicate tip labels, ",
@@ -152,7 +152,7 @@ ACL = function(phy) {
 }
 
 
-#' BranchMaster weights
+#' BranchManager weights
 #' @param phy A phylo object
 #' @return A vector of weights
 BM <- function(phy) {
@@ -167,7 +167,8 @@ BM <- function(phy) {
   
   ###
   # From https://static-content.springer.com/esm/art%3A10.1186%2F1471-2105-8-222/MediaObjects/12859_2007_1594_MOESM3_ESM.txt
-  # However, the function edgeroot() has been re-implemented to repair
+  # However, the function edgeroot() has been 
+  # re-implemented as .edgeroot(), to repair
   # a dependency on an old version of the ape package.
   numedges <- dim(phy$edge)[1]
   numtaxa <- length(phy$tip.label)
@@ -175,7 +176,7 @@ BM <- function(phy) {
   totallength <- 0
   for (i in 1:numedges) {
     curedgelen <- phy$edge.length[i]
-    W <- W + curedgelen*ACL(edgeroot(i, phy))
+    W <- W + curedgelen*ACL(.edgeroot(i, phy))
     totallength <- totallength + curedgelen
   }
   W <- W/totallength
@@ -184,12 +185,14 @@ BM <- function(phy) {
 
 
 #' Edgeroot
+#' 
 #' The function edgeroot takes a rooted 
 #' tree (input phy) and reroots that tree 
 #' at the midpoint of the specified edge 
+#' 
 #' @param x An integer, specifying an egde.
 #' @param phy A phylo object.
-edgeroot = function(x, phy) {
+.edgeroot = function(x, phy) {
   
   # Add root.edge to phy if it is missing
   if(is.null(phy$root.edge)) {

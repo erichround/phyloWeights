@@ -1,3 +1,14 @@
+#' Current glottolog version
+#'
+#' @return A character string. The
+#'   newest version of glottolog for
+#'   which data is included in this
+#'   package.
+get_glottolog_version = function() {
+  "4.4"
+}
+
+
 #' Simple metadata table
 #' @param glottolog_version A character
 #'   string. Which glottolog version to
@@ -6,8 +17,8 @@
 #'   glottocode, isocode, name, 
 #'   name_in_tree, position,
 #'   tree, tree_name
-glottolog_languages = function(
-  glottolog_version = "4.4"
+get_glottolog_languages = function(
+  glottolog_version = get_glottolog_version()
 ) {
   get_glottolog_phylo_geo(glottolog_version) %>%
     select(
@@ -28,8 +39,8 @@ glottolog_languages = function(
 #'   use.
 #' @return A dataframe with columns
 #'   tree, tree_name
-glottolog_families = function(
-  glottolog_version = "4.4"
+get_glottolog_families = function(
+  glottolog_version = get_glottolog_version()
 ) {
   main_macro <-
     get_glottolog_phylo_geo(glottolog_version) %>%
@@ -68,7 +79,7 @@ glottolog_families = function(
 #'   glottolog trees of the corresponding
 #'   version.
 get_glottolog_phylo_geo = function(
-  glottolog_version = "4.4"
+  glottolog_version = get_glottolog_version()
 ) {
   
   if (is.numeric(glottolog_version[1])) {
@@ -76,12 +87,33 @@ get_glottolog_phylo_geo = function(
   }
   
   if (glottolog_version == "4.3") {
-    phylo_geo <- get_glottolog_phylo_geo_v4.3
+    phylo_geo <- glottolog_phylo_geo_v4.3
   } else if (glottolog_version == "4.4") {
-    phylo_geo <- get_glottolog_phylo_geo_v4.4
+    phylo_geo <- glottolog_phylo_geo_v4.4
   } else {
     stop("Available values for glottolog_version are '4.3' and '4.4'.")
   }
   
   phylo_geo
+}
+
+
+#' Get the tree number of one or more glottolog families
+#' 
+#' @param family A character string or
+#'   vector of strings.
+#' @param glottolog_version A character
+#'   string. Which glottolog version to
+#'   use.
+#' @return An integer or vector of integers.
+#'   The tree number(s).
+which_tree = function(
+  family = NULL,
+  glottolog_version = get_glottolog_version()
+) {
+  if (is.null(family)) {
+    stop("family needs to be supplied.")
+  }
+  f <- get_glottolog_families(glottolog_version)
+  f$tree[match(family, f$tree_name)]
 }
