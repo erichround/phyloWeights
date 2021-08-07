@@ -2,20 +2,16 @@
 % Please edit documentation in R/branch_lengths.R
 \name{set_branch_lengths_1}
 \alias{set_branch_lengths_1}
-\title{Set branch length to 1}
+\title{Set all branch length to 1}
 \usage{
 set_branch_lengths_1(phy)
 }
 \arguments{
-\item{phy}{A phylo object}
-
-\item{ultrametric}{A logical. Whether or not
-to lengthen branches immediately above
-tips to make the tree ultrametric}
+\item{phy}{A phlyo object, the tree to manipulate.}
 }
 \value{
-A phylo object
+A phlyo object, the manipulated tree.
 }
 \description{
-Set branch length to 1
+Sets all branch lengths in a tree to 1.
 }

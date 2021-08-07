@@ -7,15 +7,38 @@
 phylo_average(phy = NULL, data = NULL)
 }
 \arguments{
-\item{phy}{A phylo or multiPhylo object}
+\item{phy}{A phylo or multiPhylo object, containing one or more trees,
+representing one or more hypotheses on the phylogenetic relatedness of a
+set of languages.}
 
-\item{data}{A dataframe}
+\item{data}{A dataframe, containing data on the languages. Must contain a
+column \code{language}, whose contents match the tip labels in \code{phy},
+and at least one column of numerical data.}
 }
 \value{
-A list, containing phy, data,
-  and dataframes: ACL_weights, BM_weights,
-  ACL_averages, BM_averages
+A list, containing phy, data, and dataframes: ACL_weights,
+  BM_weights, ACL_averages, BM_averages
 }
 \description{
-Phylogenetically-weighted averages
+Calculates phylogenetic weights according to the ACL method (see \link{ACL})
+and BranchManager method (see \link{BM}), for one or more reference trees,
+and applies the resulting sets of weights to one ore more numerical variables
+which characterize the languages in the trees, resulting in
+phylogenetically-sensitive (i.e., phylogenetically-weighted) averages. If the
+data is in the form of binary {0,1} values, this is equivalent to a
+phylogenetically-sensitive proportion.
+}
+\details{
+The function returns a list, containing: \code{phy}, the input tree(s);
+\code{data}, the input dataframe; and dataframes \code{ACL_weights},
+\code{BM_weights}, \code{ACL_averages}, \code{BM_averages}. Dataframe
+\code{ACL_weights} contains one column for each tree in \code{phy}. In those
+columns are the phylogenetic weights obtained using the ACL method.
+Additionally, \code{ACL_weights} contains all non-numeric columns of the
+input \code{data} dataframe. Dataframe \code{BM_weights} is similar but with
+phylogenetic weights obtained using the BM method. Dataframe
+\code{ACL_averages} has one row per tree and one column for each numerical
+column in \code{data}, and contains phylogenetically-sensitive averages
+obtained using the ACL method. Dataframe \code{BM_averages} is similar but
+with phylogenetically-sensitive averages obtained using the BM method.
 }

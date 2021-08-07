@@ -2,16 +2,18 @@
 % Please edit documentation in R/topology.R
 \name{bind_as_rake}
 \alias{bind_as_rake}
-\title{Bind trees with high-level rake}
+\title{Bind trees as a high-level rake}
 \usage{
 bind_as_rake(phy)
 }
 \arguments{
-\item{phy}{A multiphylo object}
+\item{phy}{A multiphylo object containing the trees to be combined.}
 }
 \value{
-A phylo object, a single tree
+A phylo object, a single tree.
 }
 \description{
-Bind trees with high-level rake
+Takes a multiPhylo object containing multiple trees and combines them into a
+single tree with a rake structure at its root, below which each tree appears
+on its own branch.
 }

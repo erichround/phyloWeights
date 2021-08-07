@@ -10,8 +10,8 @@ ACL(phy)
 \item{phy}{A phylo object.}
 }
 \value{
-A vector of weights
+A vector of weights.
 }
 \description{
-ACL weights
+Calculates phylogenetic weights (a.k.a. phylogenetic means) according to the classic method of Altschul, Carroll & Lipman DJ (1987).
 }

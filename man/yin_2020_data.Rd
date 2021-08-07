@@ -10,8 +10,8 @@ A dataframe:
 \describe{
   \item{name}{name of the lect}
   \item{glottocode}{glottocode of the lect}
-  \item{onset_violation}{presence (1) or absence (0) of word-initial SSP violation}
-  \item{coda_violation}{presence (1) or absence (0) of word-final SSP violation}}
+  \item{has_onset_violation}{presence (1) or absence (0) of word-initial SSP violation}
+  \item{has_coda_violation}{presence (1) or absence (0) of word-final SSP violation}}
 }
 \source{
 Yin (2020)

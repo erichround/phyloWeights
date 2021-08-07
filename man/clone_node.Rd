@@ -7,15 +7,17 @@
 clone_node(phy, label)
 }
 \arguments{
-\item{phy}{A phlyo object}
+\item{phy}{A phylo object. The tree to manipulate.}
 
-\item{label}{A vector of strings,
-the labels of the nodes to clone}
+\item{labels}{A character vector containing node labels.}
 }
 \value{
-phy
+A phylo object containing the modified tree.
 }
 \description{
-A node is cloned once, even if listed
-more than once in labels
+Clones internal nodes in a tree as self-daughter tips.
+}
+\details{
+A node is cloned only once, even if its label appears more than once in
+\code{label}.
 }

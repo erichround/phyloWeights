@@ -1,22 +1,85 @@
 # Phylogenetic weights
 
 #' Phylogenetically-weighted averages
-#' @param phy A phylo or multiPhylo object
-#' @param data A dataframe
-#' @return A list, containing phy, data,
-#'   and dataframes: ACL_weights, BM_weights,
-#'   ACL_averages, BM_averages
+#'
+#' Calculates phylogenetic weights according to the ACL method (see \link{ACL})
+#' and BranchManager method (see \link{BM}), for one or more reference trees,
+#' and applies the resulting sets of weights to one ore more numerical variables
+#' which characterize the languages in the trees, resulting in
+#' phylogenetically-sensitive (i.e., phylogenetically-weighted) averages. If the
+#' data is in the form of binary {0,1} values, this is equivalent to a
+#' phylogenetically-sensitive proportion.
+#'
+#' The function returns a list, containing: \code{phy}, the input tree(s);
+#' \code{data}, the input dataframe; and dataframes \code{ACL_weights},
+#' \code{BM_weights}, \code{ACL_averages}, \code{BM_averages}. Dataframe
+#' \code{ACL_weights} contains one column for each tree in \code{phy}. In those
+#' columns are the phylogenetic weights obtained using the ACL method.
+#' Additionally, \code{ACL_weights} contains all non-numeric columns of the
+#' input \code{data} dataframe. Dataframe \code{BM_weights} is similar but with
+#' phylogenetic weights obtained using the BM method. Dataframe
+#' \code{ACL_averages} has one row per tree and one column for each numerical
+#' column in \code{data}, and contains phylogenetically-sensitive averages
+#' obtained using the ACL method. Dataframe \code{BM_averages} is similar but
+#' with phylogenetically-sensitive averages obtained using the BM method.
+#'
+#' @param phy A phylo or multiPhylo object, containing one or more trees,
+#'   representing one or more hypotheses on the phylogenetic relatedness of a
+#'   set of languages.
+#' @param data A dataframe, containing data on the languages. Must contain a
+#'   column \code{language}, whose contents match the tip labels in \code{phy},
+#'   and at least one column of numerical data.
+#' @return A list, containing phy, data, and dataframes: ACL_weights,
+#'   BM_weights, ACL_averages, BM_averages
 phylo_average = function(
   phy = NULL,
   data = NULL
 ) {
 
-  # Check classes
-  if (!(class(phy) %in% c("phylo", "multiPhylo"))) {
-    stop("phy must be of class phylo or multiPhylo.")
+  # Check phy class
+  if (class(phy) != "phylo" & 
+      class(phy) != "multiPhylo") {
+    cp <- class(phy)
+    stop(str_c("`phy` must be of class phylo or multiPhylo.\n",
+               "You supplied an object of class ", cp, "."))
   }
+  
+  # Check data
   if (!is.data.frame(data)) {
-    stop("data must be a data.frame.")
+    cd <- class(data)
+    stop(str_c("`data` must be a dataframe.\n",
+               "You supplied an object of class ", cd, "."))
+  }
+  col_name <- colnames(data)
+  if (!("language" %in% col_name)) {
+    stop("Can't find column `language` in `data`.")
+  } else {
+    if (is.factor(data$language)) {
+      data$language <- as.character(data$language)
+    } else {
+      cl <- class(data$language) 
+      if (!is.character(data$language)) {
+        stop(str_c("Column `language` in `data` must contain character strings.\n",
+                   "You supplied a column of class ", cl, "."))
+      }
+    }
+  }
+  is_num_col <- 
+    sapply(1:ncol(data), 
+           function(i) is.numeric(as.data.frame(data)[,i]))
+  if (sum(is_num_col) == 0) {
+    stop(str_c("`data` must contain at least one numeric column.\n",
+               "You supplied a data frame with no numeric columns."))
+  }
+  is_extra_col <- !is_num_col & (col_name != "language")
+  if (any(is_extra_col)) {
+    warning(
+      str_c("`data` contains non-numeric columns other than",
+            " `language`, which have been ignored: ",
+            str_c(head(col_name[is_extra_col]), collapse = ", "),
+            ifelse(sum(is_extra_col) > 6, "...", "")
+      )
+    )
   }
   
   # Convert phy to multiPhlyo
@@ -24,61 +87,42 @@ phylo_average = function(
   if (class(phy) == "phylo") { phy <- c(phy) }
   n_tree <- length(phy)
   
-  # Check data contents
-  col_name <- colnames(data)
-  if (!("language" %in% col_name)) {
-    stop("data must contain a column named 'language'.")
-  }
-  
-  is_num_col <- 
-    sapply(1:ncol(data), 
-           function(i) is.numeric(as.data.frame(data)[,i]))
-  if (sum(is_num_col) == 0) {
-    stop("data must contain at least one numeric column.")
-  }
-  
-  is_extra_col <- !is_num_col & (col_name != "language")
-  if (any(is_extra_col)) {
-    warning(
-      str_c("data contains non-numeric columns other than",
-            " 'language', which have been ignored: ",
-            str_c(head(col_name[is_extra_col]), collapse = ", "),
-            ifelse(sum(is_extra_col) > 6, "...", "")
-            )
-      )
-  }
+  # Add column of tip copy suffixes
   data$.tip.label = .add_copy_suffix(data$language)
   
-  # Check phy contents
+  # Check phy's contents and match with data
   for (i in 1:n_tree) {
     if (!("edge.length" %in% names(phy[[i]]))) {
-      stop(paste("phy[[", i , "]] lacks branch lengths.", 
-                 sep = ""))
+      stop(str_c("All trees in `phy` must have branch lengths.\n",
+                 "`phy[[", i , "]]` lacks branch lengths."))
     } else if(any(is.na(phy[[i]]$edge.length))) {
-      stop(paste("phy[[", i , "]] has at least one ",
-                 "undefined branch length.", sep = ""))       
+      stop(str_c("Trees in `phy` must have lengths for all branches.\n", 
+                 "`phy[[", i , "]]` has at least one ",
+                 "undefined branch length."))       
     }
     if (Ntip(phy[[i]]) != nrow(data)) {
-      stop(
-        str_c("Number of tips in phy[[", i, "]] ",
-              "differs from the number of rows in data")
+      stop(str_c("The number of tips for all trees in `phy` must ",
+                 "match the number of rows in `data`.",
+                 "Number of tips in `phy[[", i, "]]` ",
+                 "is ", Ntip(phy[[i]]), " but the number of rows ",
+                 "in `data` is ", nrow(data), ".")
       )
     }
     phy[[i]]$tip.label <- .add_copy_suffix(phy[[i]]$tip.label)
     if (any(sort(data$.tip.label) != sort(phy[[i]]$tip.label))) {
-      stop(
-        str_c("Tip labels do not match data$language ",
-              "in phy[[", i, "]]")
+      stop(str_c("Tip labels in all trees in `phy` must match ",
+                 "the contents of the `language` column of `data`.\n",
+                 "Tip labels do not match `data$language` ",
+                 "in `phy[[", i, "]]`.")
       )
     }
     nonsister_copies <- .which_nonsister_copies(phy[[i]])
     if (length(nonsister_copies) > 0) {
-      stop(
-        str_c("Trees can contain duplicate tip labels, ",
-              "but only if the tips are sisters with ",
-              "identical branch lengths above them. This ",
-              "is not true in phy[[", i, "]] for sisters: ",
-              str_c(sort(nonsister_copies), collapse = ", "))
+      stop(str_c("Trees in `phy` can contain duplicate tip labels, ",
+                 "but only if the tips are sisters with ",
+                 "identical branch lengths above them.\n",
+                 "This is not true in `phy[[", i, "]]` for sisters: ",
+                 str_c(sort(nonsister_copies), collapse = ", "))
       )
     }
   }
@@ -141,11 +185,19 @@ phylo_average = function(
 
 
 #' ACL weights
+#' 
+#' Calculates phylogenetic weights (a.k.a. phylogenetic means) according to the classic method of Altschul, Carroll & Lipman DJ (1987).
+#' 
 #' @param phy A phylo object.
-#' @return A vector of weights
+#' @return A vector of weights.
 ACL = function(phy) {
-  if (class(phy) != "phylo") 
-    stop("object \"phy\" is not of class \"phylo\"")
+  
+  # Check phy
+  if (class(phy) != "phylo") {
+    cp <- class(phy)
+    stop(str_c("`phy` must be of class phylo.\n",
+               "You supplied an object of class ", cp, "."))
+  }
   
   S <- vcv.phylo(phy)
   rowSums(solve(S))/sum(solve(S))
@@ -153,11 +205,22 @@ ACL = function(phy) {
 
 
 #' BranchManager weights
+#' 
+#' Calculates phylogenetic weights according the to BranchManager method of Stone & Sidow (2007).
+#' 
+#' Adapted from original R code by Eric A. Stone available at \url{https://static-content.springer.com/esm/art%3A10.1186%2F1471-2105-8-222/MediaObjects/12859_2007_1594_MOESM3_ESM.txt}.
+#' The function \code{edgeroot()} has been re-implemented to repair a dependency on an old version of the ape package.
+#' 
 #' @param phy A phylo object
 #' @return A vector of weights
 BM <- function(phy) {
-  if (class(phy) != "phylo") 
-    stop("object \"phy\" is not of class \"phylo\"")
+  
+  # Check phy
+  if (class(phy) != "phylo") {
+    cp <- class(phy)
+    stop(str_c("`phy` must be of class phylo.\n",
+               "You supplied an object of class ", cp, "."))
+  }
   
   # Dichotomise the tree
   phy <- multi2di(phy)
@@ -166,10 +229,7 @@ BM <- function(phy) {
   phy$node.label <- rep("", length(phy$node.label))
   
   ###
-  # From https://static-content.springer.com/esm/art%3A10.1186%2F1471-2105-8-222/MediaObjects/12859_2007_1594_MOESM3_ESM.txt
-  # However, the function edgeroot() has been 
-  # re-implemented as .edgeroot(), to repair
-  # a dependency on an old version of the ape package.
+
   numedges <- dim(phy$edge)[1]
   numtaxa <- length(phy$tip.label)
   W <- rep(0,numtaxa)
@@ -191,7 +251,9 @@ BM <- function(phy) {
 #' at the midpoint of the specified edge 
 #' 
 #' @param x An integer, specifying an egde.
-#' @param phy A phylo object.
+#' @param phy A phylo object, the tree to manipulate.
+#' @return A phylo object, the manipulated tree. 
+#' @noRd
 .edgeroot = function(x, phy) {
   
   # Add root.edge to phy if it is missing

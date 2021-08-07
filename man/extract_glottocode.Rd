@@ -2,7 +2,7 @@
 % Please edit documentation in R/labels.R
 \name{extract_glottocode}
 \alias{extract_glottocode}
-\title{Extract parts from a glottolog tree label}
+\title{Extract glottocode substrings}
 \usage{
 extract_glottocode(labels)
 }
@@ -13,5 +13,10 @@ extract_glottocode(labels)
 A string
 }
 \description{
-Extract parts from a glottolog tree label
+From a character vector, extracts the first glottocode from each element.
+}
+\details{
+Glottocodes comprise four lowercase letters (or b10b or 3adt) followed by
+four numbers, and are only identified if they are initial in the string or
+are preceded by [.
 }

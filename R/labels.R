@@ -1,13 +1,26 @@
 # Labelling
 
-#' Shorten tree labels to the glottocode
-#' 
-#' Retain only the glottocode substring
-#' within the tip and node labels
-#' 
-#' @param phy A phylo or multiPhylo object
-#' @return A phylo object
+#' Shorten labels to a glottocode substring
+#'
+#' Shortens tip and node labels to a glottocode substring within them. If any
+#' labels lack a glottocode substring, a warning is given.
+#'
+#' Glottocodes comprise four lowercase letters (or b10b or 3adt) followed by
+#' four numbers, and are only identified if they are initial in the string or
+#' are preceded by [.
+#'
+#' @param phy A phylo or multiPhylo object, containing one or more trees to
+#'   manipulate.
+#' @return A phylo or multiPhylo object, the manipulated tree(s).
 abridge_labels = function(phy) {
+  
+  # Check phy
+  if (class(phy) != "phylo" & 
+      class(phy) != "multiPhylo") {
+    cp <- class(phy)
+    stop(str_c("`phy` must be of class phylo or multiPhylo.\n",
+               "You supplied an object of class ", cp, "."))
+  }
   
   tip_orig <- .get_tip_labels(phy)
   node_orig <- .get_node_labels(phy)
@@ -53,17 +66,33 @@ abridge_labels = function(phy) {
 }
 
 
-#' Change glottocode tip and node labels to names
+#' Change labels from glottocodes to names
+#'
+#' Looks up glottolog language names corresponding to glottocodes and replaces
+#' tip and node labels, which contain glottocodes, with the appropriate names.
+#'
+#' Labels without glottocodes are left unchanged and a warning is given. The
+#' version of glottolog to use for look-up can be controlled with
+#' \code{glottolog_version}.
 #' 
-#' @param phy A phylo object
-#' @param glottolog_version A character
-#'   string. Which glottolog version to
-#'   use.
-#' @return A phylo object
+#' @param phy A phlyo object, the tree to manipulate.
+#' @inheritParams get_glottolog_languages
+#' @return A phlyo object, the manipulated tree.
 relabel_with_names = function(
   phy,
-  glottolog_version = get_glottolog_version()
+  glottolog_version = get_newest_version()
 ) {
+  
+  # Check phy
+  if (class(phy) != "phylo") {
+    cp <- class(phy)
+    stop(str_c("`phy` must be of class phylo.\n",
+               "You supplied an object of class ", cp, "."))
+  }
+  
+  # Check glottolog_version
+  error_msg <- .check_glottolog_version(glottolog_version)
+  if (!is.na(error_msg)) { stop(error_msg) }
   
   tip_labels <- .get_tip_labels(phy)
   node_labels <- .get_node_labels(phy)
@@ -133,7 +162,15 @@ relabel_with_names = function(
 }
 
 
-#' Extract parts from a glottolog tree label
+#' Extract glottocode substrings
+#'
+#' From a character vector, extracts the first glottocode from each element.
+#'
+#' Glottocodes comprise four lowercase letters (or b10b or 3adt) followed by
+#' four numbers, and are only identified if they are initial in the string or
+#' are preceded by [.
+#'
+#'
 #' @param label A string
 #' @return A string
 extract_glottocode = function(labels) {
@@ -146,12 +183,15 @@ extract_glottocode = function(labels) {
 }
 
 
-#' Add copy suffix to duplicated items
-#' in a string of vectors
-#' @param x A vector of strings
-#' @param strip_first A logical, whether
-#'   to remove copy suffixes first.
-#' @return A vector of strings
+#' Add copy suffixes
+#'
+#' Adds copy suffixes to duplicated items in a vector of character strings. Copy
+#' suffixes are \code{-1}, \code{-2}, \code{-3}, ...
+#'
+#' @param x A character vector.
+#' @param strip_first A logical, whether to remove existing copy suffixes first.
+#' @return A character vector, with suffixes added.
+#' @noRd
 .add_copy_suffix = function(
   x,
   strip_first = TRUE
@@ -171,16 +211,28 @@ extract_glottocode = function(labels) {
 
 
 #' Remove copy suffixes
-#' @param x A vector of strings
-#' @return A vector of strings
+#'
+#' Removes copy suffixes from a vector of character strings. Copy suffixes are
+#' string-final and are comprised of a hyphen followed by numbers.
+#'
+#' @param x A character vector.
+#' @return A character vector, with suffixes removed.
+#' @noRd
 .remove_copy_suffix = function(x) {
   x <- str_remove(x, "-[0-9]+$")
 }
 
 
-#' Extract copy suffix from a tree label
+#' Extract copy suffixes
+#'
+#' Extracts copy suffixes from a vector of character strings. Copy suffixes are
+#' string-final and are comprised of a hyphen followed by numbers.
+#' 
+#' If there is no copy suffix, the return is a zero-length string, \code{""}.
+#'
 #' @param label A string
 #' @return A string
+#' @noRd
 .extract_copy_suffix = function(label) {
   regex <- "-[0-9]+$"
   e <- str_extract(label, regex)
@@ -189,8 +241,15 @@ extract_glottocode = function(labels) {
 }
 
 
-#' Get tip labels from phylo or multiPhylo
-#' @param phy A phlyo or multiPhlyo
+#' Get all tip labels from phylo or multiPhylo
+#' 
+#' Returns all tip labels from one or more trees.
+#' 
+#' Does this by concatenating the \code{tip.label} vector from each tree.
+#' 
+#' @param phy A phlyo or multiPhlyo, containing the tree(s).
+#' @return A character vector, the tip labels.
+#' @noRd
 .get_tip_labels = function(phy) {
   if (class(phy) == "phylo") {
     phy$tip.label
@@ -201,6 +260,15 @@ extract_glottocode = function(labels) {
 }
 
 
+#' Get all node labels from phylo or multiPhylo
+#' 
+#' Returns all node labels from one or more trees.
+#' 
+#' Does this by concatenating the \code{node.label} vector from each tree.
+#' 
+#' @param phy A phlyo or multiPhlyo, containing the tree(s).
+#' @return A character vector, the tip labels.
+#' @noRd
 .get_node_labels = function(phy) {
   if (class(phy) == "phylo") {
     phy$node.label
@@ -211,6 +279,17 @@ extract_glottocode = function(labels) {
 }
 
 
+#' Convert glottolog names to tree labels
+#'
+#' Converts a vector of glottolog lect names to glottolog tree labels.
+#'
+#' Comma is converted to forward slash, parentheses are converted to braces, and
+#' spaces and apostrophes are removed. The resulting strings are then acceptable
+#' labels for nodes and tip in the Newick format.
+#'
+#' @param name A character vector, the names.
+#' @return A character vector, the corresponding tree labels.
+#' @noRd
 .name_to_label = function(name) {
   name %>% 
     str_replace_all(", ", "/") %>%

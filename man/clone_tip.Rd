@@ -7,15 +7,22 @@
 clone_tip(phy, label)
 }
 \arguments{
-\item{phy}{A phlyo object}
+\item{phy}{A phylo object. The tree to manipulate.}
 
-\item{label}{A vector of strings,
-some of which might be tip labels
-of phy}
+\item{labels}{A character vector containing tip labels.}
 }
 \value{
+A phylo object containing the modified tree.
+
 phy
 }
 \description{
-Clone named tips
+#' Clones tips in a tree as self-sisters, under a new parent node.
+}
+\details{
+To clone a tip, resulting in \eqn{n} copies, include its tip label \ean{n-1}
+times in \code{label}.
+
+Cloned tips will appear under a new node of the same name. Duplicate tips
+will be assigned labels with a suffix \code{-1}, \code{-2}, \code{-3}, ...
 }

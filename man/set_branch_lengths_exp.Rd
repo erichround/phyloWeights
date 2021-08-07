@@ -2,16 +2,17 @@
 % Please edit documentation in R/branch_lengths.R
 \name{set_branch_lengths_exp}
 \alias{set_branch_lengths_exp}
-\title{Exponentialise branch lengths}
+\title{Exponentialize branch lengths}
 \usage{
-set_branch_lengths_exp(phy, ultrametric = FALSE)
+set_branch_lengths_exp(phy)
 }
 \arguments{
-\item{phy}{A phylo object}
+\item{phy}{A phlyo object, the tree to manipulate.}
 }
 \value{
-A phylo object
+A phlyo object, the manipulated tree.
 }
 \description{
-Exponentialise branch lengths
+Sets the deepest branches to length 1/2, the next deepest to 1/4, the next to
+1/8, etc.
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/weights.R
 \name{BM}
 \alias{BM}
-\title{BranchMaster weights}
+\title{BranchManager weights}
 \usage{
 BM(phy)
 }
@@ -13,5 +13,8 @@ BM(phy)
 A vector of weights
 }
 \description{
-BranchMaster weights
+Calculates phylogenetic weights according the to BranchManager method of Stone & Sidow (2007).
+}
+\details{
+
 }

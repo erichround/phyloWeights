@@ -1,3 +1,7 @@
 .onLoad = function(libname, pkgname) {
-  message("Available versions of glottolog data are 4.3 and 4.4. The newest is used by default.")
+  message(
+    str_c(
+      "PhyloWeights contains data from glottolog.com under its CC-BY 4.0 licence.\n",
+      "Available versions are glottolog 4.3 and 4.4. The newest version is used by default."
+      ))
 }

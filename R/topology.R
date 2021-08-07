@@ -2,58 +2,82 @@
 
 
 #' Glottolog trees by version
-#' 
-#' @param family A character string.
-#'   Which families' trees to return. If left
-#'   unspecified, all trees are returned.
-#' @param glottolog_version A character
-#'   string. Which glottolog version to
-#'   use.
-#' @return A multiPhylo object, the
-#'   glottolog trees of the corresponding
-#'   version; unless just one tree was
-#'   requested, in which case the return
-#'   is a phylo object of just one tree.
+#'
+#' Returns a multiPhylo object containing all, or a requested subset, of the
+#' glottolog trees.
+#'
+#' By default, trees are returned from the most recent version of glottolog.
+#' Alternatively, an older version of glottolog can be specified.
+#'
+#' @param family A character vector. Elements are names of glottolog families
+#'   whose trees are to be returned. If \code{family} is left unspecified, all
+#'   trees are returned.
+#' @inheritParams get_glottolog_languages
+#' @return A multiPhylo object containing the glottolog trees.
 get_glottolog_trees = function(
-  family = NULL,
-  glottolog_version = get_glottolog_version()
+  family,
+  glottolog_version = get_newest_version()
 ) {
   
-  if (is.numeric(glottolog_version[1])) {
-    glottolog_version <- as.character(glottolog_version)
-  }
+  # Check glottolog_version
+  error_msg <- .check_glottolog_version(glottolog_version)
+  if (!is.na(error_msg)) { stop(error_msg) }
   
+  # Choose appropriate dataset
+  glottolog_version <- as.character(glottolog_version)
   if (glottolog_version == "4.3") {
     phy <- glottolog_trees_v4.3
   } else if (glottolog_version == "4.4") {
     phy <- glottolog_trees_v4.4
-  } else {
-    stop("Available values for glottolog_version are '4.3' and '4.4'.")
   }
   
-  if (is.null(family)) { return(phy) }
+  # If family is missing, return the whole dataset
+  if (missing(family)) { return(phy) }
   
-  # Select the requested subset of the families
+  # Else, select the requested subset of the families
+  
+  # Check family
+  check_result <- .check_family(family, glottolog_version)
+  if (!is.na(check_result$error_msg)) {
+    stop(check_result$error_msg)
+  } else if (!is.na(check_result$warning_msg)) {
+    warning(check_result$warning_msg) 
+  }
+
   phy <- phy[which_tree(family)]
   
   if (length(phy) == 1) { 
+    # If only one family, return as phylo object.
     phy[[1]]
   } else {
+    # Otherwise, return a multiPhylo.
     phy
   }
 }
 
 
-#' Bind trees with high-level rake
-#' @param phy A multiphylo object
-#' @return A phylo object, a single tree
+#' Bind trees as a high-level rake
+#'
+#' Takes a multiPhylo object containing multiple trees and combines them into a
+#' single tree with a rake structure at its root, below which each tree appears
+#' on its own branch.
+#'
+#' @param phy A multiphylo object containing the trees to be combined.
+#' @return A phylo object, a single tree.
 bind_as_rake = function(phy) {
   
   if (class(phy) != "multiPhylo") {
-    stop("phy must be of class multiPhylo.")
+    cp <- class(phy)
+    stop(str_c("`phy` must be of class multiPhylo.\n",
+               "You supplied an object of class ", cp, "."))
   }
   
   n_trees <- length(phy)
+  if (n_trees == 1) {
+    warning("`phy` contained only one tree.")
+    return(phy[[1]])
+  }
+  
   n_tip_vec <- Ntip(phy)
   n_tips <- sum(n_tip_vec)
   root <- n_tips + 1
@@ -115,30 +139,76 @@ bind_as_rake = function(phy) {
 
 
 #' Create a glottolog super-tree
-#' @param macro_groups A list
-#' @param glottolog_version A character
-#'   string. Which glottolog version to
-#'   use.
+#'
+#' Combing glottolog family trees into one large tree. Families can be assembled
+#' directly below a rake structure at the root, or can be grouped, so that the
+#' root first branches into groups, and the families then branch out below the
+#' group nodes.
+#'
+#' Grouping is controlled by the \code{macro_groups} parameter. Groups can
+#' comprise a single glottolog macroarea, or multiple macroareas. Current
+#' macroareas are \code{Africa}, \code{Australia}, \code{Eurasia}, \code{North
+#' America}, \code{Papunesia} and \code{South America}. Setting
+#' \code{macro_groups} to \code{NULL} causes the tree to be assembled without
+#' groups.
+#'
+#' @param macro_groups A list of character vectors, in whic each vector contains the
+#'   names of one or more macroareas which define a group. Alternatively, setting
+#'   \code{macro_groups} to \code{NULL} causes the tree to be assembled without
+#'   groups.
+#' @inheritParams get_glottolog_languages
 assemble_supertree = function(
-  macro_groups = 
-    as.list(unique(get_glottolog_families(glottolog_version)$main_macroarea)),
-  glottolog_version = get_glottolog_version()
+  macro_groups,
+  glottolog_version = get_newest_version()
 ) {
+  
+  # Check glottolog_version
+  error_msg <- .check_glottolog_version(glottolog_version)
+  if (!is.na(error_msg)) { stop(error_msg) }
+  glottolog_version <- as.character(glottolog_version)
   
   phy <- get_glottolog_trees(glottolog_version = glottolog_version)
   
+  # Check macro_groups
+  available_macros <-
+    unique(get_glottolog_families(glottolog_version)$main_macroarea)
+  if (missing(macro_groups)) { 
+    # No argument given; use the available macro groups without
+    # further grouping
+    macro_groups <- list(available_macros) 
+  }
+  if (!is.null(macro_groups)){
+    if (!is.list(macro_groups)) {
+      if (is.character(macro_groups) & 
+          all(macro_groups %in% available_macros)) {
+        stop(str_c("`macro_groups` must be a list.\n",
+                     "You have supplied character vector.\n",
+                     "Did you mean `list(", 
+                     str_c(str_c("'", macro_groups, "'"), 
+                           collapse = ","),
+                     ")`?"))
+      }
+      mc <- class(macro_groups)
+      stop(str_c("`macro_groups` must be a list.\n",
+                   "You have supplied an object of class ", mc, "."))
+    }
+  }
+
   # Get the predominant macro_area for each tree
   main_macro <- 
     get_glottolog_families(glottolog_version)$main_macroarea
   
   # Group family trees by macroarea
   if (is.null(macro_groups)) {
+    # if phy = NULL, use no grouping at all
     macro_phys <- phy
   } else {
+    # Do grouping
     macro_phys <-
       lapply(macro_groups, function(m) {
         tree_set <- which(main_macro %in% m)
-        macro_tree <- bind_as_rake(phy[tree_set])
+        macro_tree <- 
+          suppressWarnings(bind_as_rake(phy[tree_set]))
         macro_label <- str_c(.name_to_label(m), collapse = "-")
         macro_tree$node.label[1] <- macro_label
         macro_tree
@@ -147,7 +217,8 @@ assemble_supertree = function(
   }
   
   # Group globally
-  super_phy <- bind_as_rake(macro_phys)
+  super_phy <- 
+    suppressWarnings(bind_as_rake(macro_phys))
   super_phy$node.label[1] <- "World"
   super_phy$edge.length <- rep(1, Nedge(super_phy))
   
@@ -155,46 +226,88 @@ assemble_supertree = function(
 }
 
 
-#' Keep a set of nodes & tips, as tip set
-#' @param phy A phylo object
-#' @param labels A vector of strings,
-#'   which are tip and node labels
+#' Select tips from current tips and nodes
+#'
+#' From a tree, select existing tips to be kept, or to be cloned, and existing
+#' internal nodes to be cloned as tips. To keep a tip, include its tip label
+#' once in \code{label}. To clone a tip, resulting in \eqn{n} copies, includes
+#' its tip label \ean{n} times in \code{label}. To clone an internal node as a
+#' self-daughter tip, include its node label in \coded{label}.
+#'
+#' Cloned tips will appear under a new node of the same name. Duplicate tips and
+#' nodes will be assigned labels with a suffix \code{-1}, \code{-2}, \code{-3},
+#' ...
+#'
+#' @param phy A phylo object. The tree to manipulate.
+#' @param labels A character vector containing tip and node labels.
+#' @return A phylo object containing the modified tree.
 select_tips = function(phy, label) {
   
-  tip_labels <- phy$tip.label
-  node_labels <- phy$node.label
+  # Check phy
+  if (class(phy) != "phylo") {
+    cp <- class(phy)
+    stop(str_c("`phy` must be of class phylo.\n",
+               "You supplied an object of class ", cp, "."))
+  }
   
+  # Check labels
+  check_result <- .check_labels(phy, label, type = "both")
+  if (!is.na(check_result$error_msg)) {
+    stop(check_result$error_msg)
+  } else if (!is.na(check_result$warning_msg)) {
+    warning(check_result$warning_msg) 
+  }
+
   # Clone all named nodes as self-sister tips
-  phy <- clone_node(phy, label)
+  node_labels <- label[label %in% phy$node.label]
+  if (length(node_labels) > 0) {
+    phy <- clone_node(phy, node_labels)
+  }
   
   # Keep only the named tips, including the
   # nodes newly cloned as tips
-  drop_tips <- setdiff(tip_labels, label)
+  drop_tips <- setdiff(phy$tip.label, label)
   phy <- drop.tip(phy, drop_tips, collapse.singles = FALSE)
   
   # Duplicate tips that appear twice or more 
   # in the labels parameter, including the
   # nodes newly cloned as tips
-  dup_tips <- label[duplicated(label)]
-  phy <- clone_tip(phy, dup_tips)
+  dup_labels <- label[duplicated(label)]
+  dup_tips <- dup_labels[dup_labels %in% phy$tip.label]
+  if (length(dup_tips) > 0) {
+    phy <- clone_tip(phy, dup_tips)
+  }
   
   phy
 }
 
 
 #' Clone named nodes to self-daughter tips
-#' 
-#' A node is cloned once, even if listed
-#' more than once in labels
-#' 
-#' @param phy A phlyo object
-#' @param label A vector of strings,
-#'   the labels of the nodes to clone
-#' @return phy
+#'
+#' Clones internal nodes in a tree as self-daughter tips.
+#'
+#' A node is cloned only once, even if its label appears more than once in
+#' \code{label}.
+#'
+#' @param phy A phylo object. The tree to manipulate.
+#' @param labels A character vector containing node labels.
+#' @return A phylo object containing the modified tree.
 clone_node = function(phy, label) {
   
-  label <- 
-    unique(label[label %in% phy$node.label])
+  # Check phy
+  if (class(phy) != "phylo") {
+    stop("phy must be of class phylo.")
+  }
+  
+  # Check labels
+  check_result <- .check_labels(phy, label, type = "node")
+  if (!is.na(check_result$error_msg)) {
+    stop(check_result$error_msg)
+  } else if (!is.na(check_result$warning_msg)) {
+    warning(check_result$warning_msg) 
+  }
+  
+  label <- unique(label[label %in% phy$node.label])
   n_new <- length(label)
   
   if (n_new == 0) { return(phy) }
@@ -265,17 +378,41 @@ clone_node = function(phy, label) {
 
 
 #' Clone named tips
-#' @param phy A phlyo object
-#' @param label A vector of strings,
-#'   some of which might be tip labels
-#'   of phy
+#'
+#' #' Clones tips in a tree as self-sisters, under a new parent node.
+#'
+#' To clone a tip, resulting in \eqn{n} copies, include its tip label \ean{n-1}
+#' times in \code{label}.
+#'
+#' Cloned tips will appear under a new node of the same name. Duplicate tips
+#' will be assigned labels with a suffix \code{-1}, \code{-2}, \code{-3}, ...
+#'
+#' @param phy A phylo object. The tree to manipulate.
+#' @param labels A character vector containing tip labels.
+#' @return A phylo object containing the modified tree.
 #' @return phy
 clone_tip = function(phy, label) {
+  
+  # Check phy
+  if (class(phy) != "phylo") {
+    cp <- class(phy)
+    stop(str_c("`phy` must be of class phylo.\n",
+               "You supplied an object of class ", cp, "."))
+  }
+  
+  # Check labels
+  check_result <- .check_labels(phy, label, type = "tip")
+  if (!is.na(check_result$error_msg)) {
+    stop(check_result$error_msg)
+  } else if (!is.na(check_result$warning_msg)) {
+    warning(check_result$warning_msg) 
+  }
   
   for (l in unique(label)) {
     n_dup <- sum(label == l)
     
     for(i in (1:n_dup)) {
+      
       # clone a tip
       n_tips <- length(phy$tip.label)
       location <- 
@@ -286,11 +423,11 @@ clone_tip = function(phy, label) {
                which(phy$node.label == "NA") + n_tips)
       phy <-
         phy %>%
-        bind.tip(edge.length = 1,
-                 # This is not the final label, but it
-                 # keeps the tip labels distinct for now
-                 tip.label = str_c(l, "-", i),
-                 where = location)
+        .bind_tip(edge.length = 1,
+                  # This is not the final label, but it
+                  # keeps the tip labels distinct for now
+                  tip.label = str_c(l, "-", i),
+                  where = location)
     }
     
     # The original tip's branch length gets changed to 0,
@@ -311,15 +448,29 @@ clone_tip = function(phy, label) {
 
 
 #' Collapse a node rootwards
-#' 
-#' Note this will also multichotomise
-#' all nodes with a 0-length branch above 
-#' them
-#' @param phy A phylo object
-#' @param label A string, the labels
-#'   of the nodes to collapse
-#' @return A phylo object
+#'
+#' Note this will also multichotomise all nodes with a 0-length branch above
+#' them.
+#'
+#' @param phy A phylo object. The tree to manipulate.
+#' @param labels A character vector containing node labels.
+#' @return A phylo object containing the modified tree.
 collapse_node = function(phy, label) {
+  
+  # Check phy
+  if (class(phy) != "phylo") {
+    cp <- class(phy)
+    stop(str_c("`phy` must be of class phylo.\n",
+               "You supplied an object of class ", cp, "."))
+  }
+  
+  # Check labels
+  check_result <- .check_labels(phy, label, type = "node")
+  if (!is.na(check_result$error_msg)) {
+    stop(check_result$error_msg)
+  } else if (!is.na(check_result$warning_msg)) {
+    warning(check_result$warning_msg) 
+  }
   
   n_tips <- length(phy$tip.label)
   target_node <- match(label, phy$node.label) + n_tips
@@ -333,10 +484,17 @@ collapse_node = function(phy, label) {
 }
 
 
+#' Find topologically distinct duplicate tips
+#'
+#' Identifies duplicate tips that aren't sisters on equal-length branches. Is
+#' used by \code{phylo_average()} to check assumptions.
+#'
+#' @param phy A phylo object, the tree to examine.
+#' @return A character vector of tip labels.
+#' @noRd
 .which_nonsister_copies = function(phy) {
-  # Sister nodes in edge[,2] will share a
-  # parent in edge[,1]. Check if this is true, 
-  # and that the branch lengths are equal.
+  # Sister nodes in edge[,2] will share a parent in edge[,1]. Check if this is
+  # true, and that the branch lengths are equal.
   df <-
     data.frame(
       u = phy$edge[,1],
@@ -347,12 +505,57 @@ collapse_node = function(phy, label) {
         .remove_copy_suffix(),
       stringsAsFactors = FALSE
       ) %>%
+    # Keep only edges that end in tips
     filter(!is.na(v_label)) %>%
+    # Group by tip label
     group_by(v_label) %>%
     mutate(
+      # Count the number of different parents
       n_u = length(unique(u)),
+      # Count the number of different lengths
       n_len = length(unique(len))
       ) %>%
+    # Keep only those with >1 of either
     filter(n_u > 1 | n_len > 1)
+  # Return their labels
   df$v_label_orig
+}
+
+
+#' Safely bind tips
+#'
+#' \code{ape::bind.tip()} deletes tip and node label substrings enclosed in
+#' square brackets. This is a safe version which doesn't.
+#'
+#' @noRd
+.bind_tip = function(phy, tip.label, ...) {
+  
+  tip.label <- 
+    tip.label %>%
+    str_replace_all("\\[", "〔") %>%
+    str_replace_all("\\]", "〕")
+  
+  phy$tip.label <- 
+    phy$tip.label %>%
+    str_replace_all("\\[", "〔") %>%
+    str_replace_all("\\]", "〕")
+  
+  phy$node.label <- 
+    phy$node.label %>%
+    str_replace_all("\\[", "〔") %>%
+    str_replace_all("\\]", "〕")
+  
+  phy <- bind.tip(phy, tip.label, ...)
+  
+  phy$tip.label <- 
+    phy$tip.label %>%
+    str_replace_all("〔", "\\[") %>%
+    str_replace_all("〕", "\\]")
+  
+  phy$node.label <- 
+    phy$node.label %>%
+    str_replace_all("〔", "\\[") %>%
+    str_replace_all("〕", "\\]")
+  
+  phy
 }

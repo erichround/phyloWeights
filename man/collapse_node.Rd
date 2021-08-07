@@ -7,16 +7,14 @@
 collapse_node(phy, label)
 }
 \arguments{
-\item{phy}{A phylo object}
+\item{phy}{A phylo object. The tree to manipulate.}
 
-\item{label}{A string, the labels
-of the nodes to collapse}
+\item{labels}{A character vector containing node labels.}
 }
 \value{
-A phylo object
+A phylo object containing the modified tree.
 }
 \description{
-Note this will also multichotomise
-all nodes with a 0-length branch above 
-them
+Note this will also multichotomise all nodes with a 0-length branch above
+them.
 }
