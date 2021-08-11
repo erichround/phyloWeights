@@ -4,12 +4,12 @@
 
 #### EXTERNAL DATA
 
-# Read the new glottolog data, which has been put
-# in the data-raw directory with the appropriate
-# name (you'll need to add a final "_vX.X")
+# Read the new glottolog data, which has been put in the data-raw directory with
+# the appropriate name (you'll need to add a final "_vX.X")
 
 glottolog_trees_v4.4 <- ape::read.tree("data-raw/tree_glottolog_newick_4-4.txt")
-glottolog_geography_v4.4 <- read.csv("data-raw/languages_and_dialects_geo_4-4.csv")
+glottolog_geography_v4.4 <- read.csv("data-raw/languages_and_dialects_geo_4-4.csv",
+                                     stringsAsFactors = FALSE)
 
 # Add the new external datasets 
 

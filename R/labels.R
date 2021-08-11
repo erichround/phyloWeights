@@ -116,7 +116,7 @@ relabel_with_names = function(
       by = "glotto_base"
     ) %>%
     mutate(
-      name = str_c(name_base, copy_suffix)
+      name = str_c(name_base, "-", copy_suffix)
     )
   
   missing_tips <- 
@@ -179,7 +179,88 @@ extract_glottocode = function(labels) {
   regex <- "(?<=(^|\\[))([a-z]{4}|b10b|3adt)[0-9]{4}(?=(\\]|-[0-9]{1,3}$|$))"
   g <- str_extract(labels, regex)
   copy_suffix <- .extract_copy_suffix(labels)
-  str_c(g, copy_suffix)
+  str_c(g, "-", copy_suffix)
+}
+
+
+#' Apply duplicate suffixes to tips and nodes
+#'
+#' Suffixes are applied to ensure tip labels and node labels are not duplicates.
+#' Suffixes have the form -1, -2, -3, ...
+#'
+#' The function recognises existing duplicate suffixes and deals with them in
+#' one of two ways. If a label has n duplicates that are already suffixed -1,
+#' -2, ... -n, then the suffixes are not changed. Under any other conditions,
+#' old suffixes are removed and new ones applied.
+#'
+#' Suffixation of tips and of nodes are handled independantly of one another.
+#'
+#' @param phy A phylo object, the tree whose labels are to have copy suffixes
+#'   applied.
+#' @return A phylo object, the same tree but with suffixes applied to the
+#'   labels.
+apply_duplicate_suffixes = function(
+  phy
+) {
+  
+  # Check phy
+  check <- .check_phy(phy)
+  if (!is.na(check$error_msg)) { stop(check$error_msg) }
+  # Note, if needed, this will add missing phy$node.label, phy$tip.label
+  phy <- check$phy
+  
+  # # Check label_missing_as
+  # cl <- class(label_missing_as)
+  # if (!is.character(label_missing_as)) {
+  #   stop(str_c("`label_missing_as` must be a character string.]n",
+  #              "You supplied an object of class `", cl, "`."))
+  # }
+  # llen <- length(label_missing_as)
+  # if (llen > 1) {
+  #   warning(str_c("`label_missing_as` should be length 1.\n",
+  #                 "You supplied a vector length ", llen, ". ",
+  #                 "Only the first element has been used."))
+  # }
+  # if (llen == 0) {
+  #   stop(str_c("`label_missing_as` should be length 1.\n",
+  #              "You supplied a vector length 0."))
+  # }
+  
+  # Helper function
+  reassign_sufnum = function(x) {
+    x <- as.numeric(x)
+    nums <- seq(length(x))
+    # If all numbers are present, return them as is
+    if (all(nums %in% x)) { return(x) }
+    # Else, reassign
+    nums
+  }
+  
+  # # Change empty labels
+  # phy$node.label[phy$node.label == ""] <- label_missing_as[1]
+  # phy$tip.label[phy$tip.label == ""] <- label_missing_as[1]
+  
+  n_node <- phy$Nnode
+  n_tip <- length(phy$tip.label)
+  label_df <- 
+    data.frame(is_node = c(rep(FALSE, n_tip), rep(TRUE, n_node)),
+               orig = c(phy$tip.label, phy$node.label),
+               stringsAsFactors = FALSE) %>%
+    mutate(
+      orig_suf = .extract_copy_suffix(orig),
+      orig_base = .remove_copy_suffix(orig)
+      ) %>%
+    group_by(orig_base, is_node) %>%
+    mutate(
+      n_type = n(),
+      new_suf = str_c("-", reassign_sufnum(orig_suf)),
+      is_suffixable = (n_type > 1) & (str_length(orig_base) != 0),
+      new = str_c(orig_base, ifelse(is_suffixable, new_suf, ""))
+    )
+  phy$tip.label <- filter(label_df, !is_node)$new
+  phy$node.label <- filter(label_df, is_node)$new
+  
+  phy
 }
 
 
@@ -234,7 +315,7 @@ extract_glottocode = function(labels) {
 #' @return A string
 #' @noRd
 .extract_copy_suffix = function(label) {
-  regex <- "-[0-9]+$"
+  regex <- "(?<=-)[0-9]+$"
   e <- str_extract(label, regex)
   e[is.na(e)] <- ""
   e

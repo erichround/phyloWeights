@@ -119,20 +119,16 @@
 
 
 #' Check labels
-#' 
-#' Check the label parameter and return
-#' informative error and warning messages
-#' 
+#'
+#' Check the label parameter and return informative error and warning messages
+#'
 #' @param phy A phylo object.
-#' @param label An object to be checked.
-#'   Should be a character vector of length
-#'   > 0, comprised of elements also found
-#'   in phy$tip.label and/or phy$node.label.
-#' @param type A string. Either 'tip', 'node'
-#'   or 'both'.
-#' @return A list with elements error_msg
-#'   and warning_msg. These are NA is there's
-#'   no message.
+#' @param label An object to be checked. Should be a character vector of length
+#'   > 0, comprised of elements also found in phy$tip.label and/or
+#'   phy$node.label, with no duplicates
+#' @param type A string. Either 'tip', 'node' or 'both'.
+#' @return A list with elements `error_msg` and `warning_msg`. These are `NA`` if
+#'   there's no message.
 #' @noRd
 .check_labels = function(phy, label, type) {
   
@@ -153,40 +149,92 @@
     ))
   }
   
+  if (any(label == "")) {
+    return(list(
+      error_msg = str_c("Elements of `label` cannot be an empty string.\n",
+                        "You provided an empty string as element ", 
+                        which(label == "")[1], " of `label`."),
+      warning_msg = NA
+    ))
+  }
+  
   # This assumes phy is okay!
   if (type == "tip") {
-    missing_label <- setdiff(label, phy$tip.label)
+    extra_label <- setdiff(label, phy$tip.label)
     type_str <- "tip"
   } else if (type == "node") {
-    missing_label <- setdiff(label, phy$node.label)
+    extra_label <- setdiff(label, phy$node.label)
     type_str <- "node"
   } else if (type == "both") {
-    missing_label <- setdiff(label, c(phy$tip.label, phy$node.label))
+    extra_label <- setdiff(label, c(phy$tip.label, phy$node.label))
     type_str <- "tip and/or node"
   }
-  n_missing <- length(missing_label)
-  
-  if (n_missing != 0) {
-    if (n_missing > 4) {
-      missing_label <- c(missing_label[1:4], "..")
-    }
-    if (n_missing == length(label)) {
-      return(list(
-        error_msg = str_c("Elements of `label` should match ", type_str, 
-                          " labels in `phy`.\n",
-                          "There are no matches in the values you supplied: ",
-                          str_c(missing_label, collapse = ", "), "."),
-        warning_msg = NA
-      ))
-    } 
+  n_extra <- length(extra_label)
+  if (n_extra != 0) {
+    return(list(
+      error_msg = 
+        str_c("Elements of `label` should match ", type_str, 
+              " labels in `phy`.\n",
+              "In the values you supplied, there are no matches for: ",
+              str_c(head(extra_label, 4), collapse = ", "),
+              ifelse(n_extra > 4, "..", ""), "."),
+      warning_msg = NA
+    ))
+  }
+  is_dupl <- duplicated(label)
+  dupl <- unique(label[is_dupl])
+  if (any(is_dupl)) {
     return(list(
       error_msg = NA,
-      warning_msg = str_c("Elements of `label` should match ", type_str, 
-                          " labels in `phy`.\n", 
-                          "You supplied one or more values which did not match: ",
-                          str_c(missing_label, collapse = ", "), ".")
+      warning_msg =
+        str_c("`label` contained duplicate entries for: ",
+              str_c(head(dupl, 4), collapse = ", "),
+              ifelse(length(dupl) > 4, "..", ""), ".\n",
+              "These were treated as if just one copy had been provided.")
     ))
   }
   
   list(error_msg = NA, warning_msg = NA)
+}
+
+
+#' Check phylo
+#'
+#' Checks if object phy has is class phylo. If phy is missing tip.label
+#' and/or node.label, then these are added, and the labels are \code{''}.
+#'
+#' @param phy
+#' @return A list with elements error_msg and warning_msg (which are NA is
+#'   there's no message) and phy, a possibly modified version of phy
+.check_phy = function(phy) {
+  
+  # Check class
+  if (class(phy) != "phylo") {
+    cp <- class(phy)
+    return(list(
+      error_msg = str_c("`phy` must be of class phylo.\n",
+                        "You supplied an object of class ", cp, "."),
+      warning_msg = NA,
+      phy = phy
+      ))
+  }
+  
+  # Check for node labels. Add "" if missing.
+  if (!("node.label") %in% names(phy)) {
+    phy$node.label <- rep("", phy$Nnode)
+  }
+  
+  # Check for tip labels. Add "" if missing.
+  n_tip <- length(setdiff(phy$edge[,2], phy$edge[,1]))
+  if (!("tip.label") %in% names(phy)) {
+    phy$tip.label <- rep("", n_tip)
+  }
+  
+  # Check for edge lengths. Add 1 if missing.
+  n_edge <- nrow(phy$edge)
+  if (!("edge.length") %in% names(phy)) {
+    phy$edge.length <- rep(1, n_edge)
+  }
+  
+  return(list(error_msg = NA, warning_msg = NA, phy = phy))
 }

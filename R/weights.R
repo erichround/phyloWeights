@@ -51,6 +51,7 @@ phylo_average = function(
                "You supplied an object of class ", cd, "."))
   }
   col_name <- colnames(data)
+  # Check the language column
   if (!("language" %in% col_name)) {
     stop("Can't find column `language` in `data`.")
   } else {
@@ -63,7 +64,17 @@ phylo_average = function(
                    "You supplied a column of class ", cl, "."))
       }
     }
+    is_dupl <- duplicated(data$language) 
+    if (any(is_dupl)) {
+      stop(
+        str_c("`Column `language` in `data` must not contain duplicates.\n",
+              "You supplied duplicates of: ",
+              str_c(head(unique(data$language[is_dupl]), 4), collapse = ", "),
+              ifelse(sum(is_dupl) > 4, "..", ""), ".")
+      )
+    }
   }
+  # Check the other columns
   is_num_col <- 
     sapply(1:ncol(data), 
            function(i) is.numeric(as.data.frame(data)[,i]))
@@ -76,59 +87,68 @@ phylo_average = function(
     warning(
       str_c("`data` contains non-numeric columns other than",
             " `language`, which have been ignored: ",
-            str_c(head(col_name[is_extra_col]), collapse = ", "),
-            ifelse(sum(is_extra_col) > 6, "...", "")
-      )
+            str_c(head(col_name[is_extra_col], 4), collapse = ", "),
+            ifelse(sum(is_extra_col) > 4, "..", ""), ".")
     )
   }
   
   # Convert phy to multiPhlyo
+  is_phylo <- class(phy) == "phylo"
   phy_original <- phy
-  if (class(phy) == "phylo") { phy <- c(phy) }
+  if (is_phylo) { phy <- c(phy) }
   n_tree <- length(phy)
   
-  # Add column of tip copy suffixes
-  data$.tip.label = .add_copy_suffix(data$language)
   
-  # Check phy's contents and match with data
+  # Check phy's contents and their match with data
   for (i in 1:n_tree) {
+    phy_str <- ifelse(is_phylo, "`phy`", "`phy[[", i, "]]`")
+    Each_phy <- ifelse(is_phylo, "`phy`", "Each tree in `phy`")
+    each_phy <- ifelse(is_phylo, "`phy`", "each tree in `phy`")
+    
+    # Check presence of branch lengths
     if (!("edge.length" %in% names(phy[[i]]))) {
-      stop(str_c("All trees in `phy` must have branch lengths.\n",
-                 "`phy[[", i , "]]` lacks branch lengths."))
+      stop(str_c(Each_phy, " must have branch lengths.\n",
+                 phy_str, " lacks branch lengths."))
     } else if(any(is.na(phy[[i]]$edge.length))) {
-      stop(str_c("Trees in `phy` must have lengths for all branches.\n", 
-                 "`phy[[", i , "]]` has at least one ",
-                 "undefined branch length."))       
+      stop(str_c(Each_phy, " must have lengths for all branches.\n", 
+                 phy_str, " has at least one undefined branch length."))       
     }
-    if (Ntip(phy[[i]]) != nrow(data)) {
-      stop(str_c("The number of tips for all trees in `phy` must ",
-                 "match the number of rows in `data`.",
-                 "Number of tips in `phy[[", i, "]]` ",
-                 "is ", Ntip(phy[[i]]), " but the number of rows ",
-                 "in `data` is ", nrow(data), ".")
+    # Check tip labels and their matches
+    is_dupl <- duplicated(phy$tip.label) 
+    dupl <- unique(phy$tip.label[is_dupl])
+    if (any(is_dupl)) {
+      stop(
+        str_c("In ", each_phy, ", all tips must have distinct labels.\n",
+              "In ", phy_str, " you supplied duplicates of: ",
+              str_c(head(dupl, 4), collapse = ", "),
+              ifelse(length(dupl) > 4, "..", ""), ".")
       )
     }
-    phy[[i]]$tip.label <- .add_copy_suffix(phy[[i]]$tip.label)
-    if (any(sort(data$.tip.label) != sort(phy[[i]]$tip.label))) {
-      stop(str_c("Tip labels in all trees in `phy` must match ",
-                 "the contents of the `language` column of `data`.\n",
-                 "Tip labels do not match `data$language` ",
-                 "in `phy[[", i, "]]`.")
+    extra <- setdiff(phy$tip.label, data$language)
+    if (length(is_extra) > 0) {
+      stop(
+        str_c("In ", each_phy, ", all tips must be represented in ",
+              "the `language` column of `data`.\n",
+              "There is no match in `data` for: ",
+              str_c(head(extra, 4), collapse = ", "),
+              ifelse(length(extra) > 4, "...", ""), " in ", phy_str, ".")
       )
     }
-    nonsister_copies <- .which_nonsister_copies(phy[[i]])
-    if (length(nonsister_copies) > 0) {
-      stop(str_c("Trees in `phy` can contain duplicate tip labels, ",
-                 "but only if the tips are sisters with ",
-                 "identical branch lengths above them.\n",
-                 "This is not true in `phy[[", i, "]]` for sisters: ",
-                 str_c(sort(nonsister_copies), collapse = ", "))
+    missing <- setdiff(phy$tip.label, data$language)
+    if (length(missing) > 0) {
+      stop(
+        str_c(Each_phy, " must have a tip for every value in ",
+              "the `language` column of `data`.\n",
+              "In ", phy_str, "there is no tip that matches: ",
+              str_c(head(missing, 4), collapse = ", "),
+              ifelse(length(missing) > 4, "..", ""), ".")
       )
     }
   }
   
+  
   # Get weights
-  ACL_weights <- BM_weights <- data %>% select(.tip.label)
+  ACL_weights <- BM_weights <- data %>% select(language)
   for (i in 1:length(phy)) {
     ACL_i <- data.frame(x = ACL(phy[[i]]), 
                         .tip.label = phy[[i]]$tip.label)
@@ -205,12 +225,15 @@ ACL = function(phy) {
 
 
 #' BranchManager weights
-#' 
-#' Calculates phylogenetic weights according the to BranchManager method of Stone & Sidow (2007).
-#' 
-#' Adapted from original R code by Eric A. Stone available at \url{https://static-content.springer.com/esm/art%3A10.1186%2F1471-2105-8-222/MediaObjects/12859_2007_1594_MOESM3_ESM.txt}.
-#' The function \code{edgeroot()} has been re-implemented to repair a dependency on an old version of the ape package.
-#' 
+#'
+#' Calculates phylogenetic weights according the to BranchManager method of
+#' Stone & Sidow (2007).
+#'
+#' Adapted from original R code by Eric A. Stone available at
+#' \url{https://static-content.springer.com/esm/art%3A10.1186%2F1471-2105-8-222/MediaObjects/12859_2007_1594_MOESM3_ESM.txt}.
+#' The function \code{edgeroot()} has been re-implemented to repair a dependency
+#' on an old version of the ape package.
+#'
 #' @param phy A phylo object
 #' @return A vector of weights
 BM <- function(phy) {

@@ -9,6 +9,9 @@
 #' By default, trees are returned from the most recent version of glottolog.
 #' Alternatively, an older version of glottolog can be specified.
 #'
+#' If only one tree is returned, it is returned as a \code{phylo} object. If
+#' multiple trees are returned, they are returned as a \code{multiPhylo} object.
+#'
 #' @param family A character vector. Elements are names of glottolog families
 #'   whose trees are to be returned. If \code{family} is left unspecified, all
 #'   trees are returned.
@@ -44,7 +47,7 @@ get_glottolog_trees = function(
     warning(check_result$warning_msg) 
   }
 
-  phy <- phy[which_tree(family)]
+  phy <- phy[which_tree(family, glottolog_version)]
   
   if (length(phy) == 1) { 
     # If only one family, return as phylo object.
@@ -74,7 +77,7 @@ bind_as_rake = function(phy) {
   
   n_trees <- length(phy)
   if (n_trees == 1) {
-    warning("`phy` contained only one tree.")
+    warning("`phy` contained only one tree. No changes were made to it.")
     return(phy[[1]])
   }
   
@@ -140,10 +143,10 @@ bind_as_rake = function(phy) {
 
 #' Create a glottolog super-tree
 #'
-#' Combing glottolog family trees into one large tree. Families can be assembled
-#' directly below a rake structure at the root, or can be grouped, so that the
-#' root first branches into groups, and the families then branch out below the
-#' group nodes.
+#' Combining glottolog family trees into one large tree. Families can be
+#' assembled directly below a rake structure at the root, or can be grouped, so
+#' that the root first branches into groups, and the families then branch out
+#' below the group nodes.
 #'
 #' Grouping is controlled by the \code{macro_groups} parameter. Groups can
 #' comprise a single glottolog macroarea, or multiple macroareas. Current
@@ -152,10 +155,10 @@ bind_as_rake = function(phy) {
 #' \code{macro_groups} to \code{NULL} causes the tree to be assembled without
 #' groups.
 #'
-#' @param macro_groups A list of character vectors, in whic each vector contains the
-#'   names of one or more macroareas which define a group. Alternatively, setting
-#'   \code{macro_groups} to \code{NULL} causes the tree to be assembled without
-#'   groups.
+#' @param macro_groups A list of character vectors, in whic each vector contains
+#'   the names of one or more macroareas which define a group. Alternatively,
+#'   setting \code{macro_groups} to \code{NULL} causes the tree to be assembled
+#'   without groups.
 #' @inheritParams get_glottolog_languages
 assemble_supertree = function(
   macro_groups,
@@ -226,57 +229,33 @@ assemble_supertree = function(
 }
 
 
-#' Select tips from current tips and nodes
+#' Select tips
 #'
-#' From a tree, select existing tips to be kept, or to be cloned, and existing
-#' internal nodes to be cloned as tips. To keep a tip, include its tip label
-#' once in \code{label}. To clone a tip, resulting in \eqn{n} copies, includes
-#' its tip label \ean{n} times in \code{label}. To clone an internal node as a
-#' self-daughter tip, include its node label in \coded{label}.
-#'
-#' Cloned tips will appear under a new node of the same name. Duplicate tips and
-#' nodes will be assigned labels with a suffix \code{-1}, \code{-2}, \code{-3},
-#' ...
+#' From a tree, select which tips are to be kept.
 #'
 #' @param phy A phylo object. The tree to manipulate.
-#' @param labels A character vector containing tip and node labels.
+#' @param label A character vector containing tip labels.
 #' @return A phylo object containing the modified tree.
-select_tips = function(phy, label) {
+select_tip = function(phy, label) {
   
   # Check phy
-  if (class(phy) != "phylo") {
-    cp <- class(phy)
-    stop(str_c("`phy` must be of class phylo.\n",
-               "You supplied an object of class ", cp, "."))
-  }
+  check <- .check_phy(phy)
+  if (!is.na(check$error_msg)) { stop(check$error_msg) }
+  # Note, if needed, this will add missing $node.label, $tip.label, $edge.length
+  phy <- check$phy
   
   # Check labels
-  check_result <- .check_labels(phy, label, type = "both")
+  check_result <- .check_labels(phy, label, type = "tip")
   if (!is.na(check_result$error_msg)) {
     stop(check_result$error_msg)
   } else if (!is.na(check_result$warning_msg)) {
     warning(check_result$warning_msg) 
-  }
-
-  # Clone all named nodes as self-sister tips
-  node_labels <- label[label %in% phy$node.label]
-  if (length(node_labels) > 0) {
-    phy <- clone_node(phy, node_labels)
   }
   
   # Keep only the named tips, including the
   # nodes newly cloned as tips
   drop_tips <- setdiff(phy$tip.label, label)
   phy <- drop.tip(phy, drop_tips, collapse.singles = FALSE)
-  
-  # Duplicate tips that appear twice or more 
-  # in the labels parameter, including the
-  # nodes newly cloned as tips
-  dup_labels <- label[duplicated(label)]
-  dup_tips <- dup_labels[dup_labels %in% phy$tip.label]
-  if (length(dup_tips) > 0) {
-    phy <- clone_tip(phy, dup_tips)
-  }
   
   phy
 }
@@ -286,18 +265,21 @@ select_tips = function(phy, label) {
 #'
 #' Clones internal nodes in a tree as self-daughter tips.
 #'
-#' A node is cloned only once, even if its label appears more than once in
-#' \code{label}.
+#' The length of any new branch, between node n and its new clone, is set equal to the
+#' longest of the original branches directly below node n.
 #'
 #' @param phy A phylo object. The tree to manipulate.
-#' @param labels A character vector containing node labels.
+#' @param label A character vector containing node labels.
 #' @return A phylo object containing the modified tree.
 clone_node = function(phy, label) {
   
   # Check phy
-  if (class(phy) != "phylo") {
-    stop("phy must be of class phylo.")
-  }
+  check <- .check_phy(phy)
+  if (!is.na(check$error_msg)) { stop(check$error_msg) }
+  # Note, if needed, this will add missing $node.label, $tip.label, $edge.length
+  phy <- check$phy
+  phy$node.label[phy$node.label == ""] <- "##NOLABEL##"
+  phy$tip.label[phy$tip.label == ""] <- "##NOLABEL##"
   
   # Check labels
   check_result <- .check_labels(phy, label, type = "node")
@@ -305,6 +287,21 @@ clone_node = function(phy, label) {
     stop(check_result$error_msg)
   } else if (!is.na(check_result$warning_msg)) {
     warning(check_result$warning_msg) 
+  }
+  
+  # Check for duplicate nodes that match label
+  l_nodes <- which(phy$node.label %in% label)
+  dup_l_nodes <- duplicated(phy$node.label[l_nodes])
+  dup_node_labels <- unique(phy$node.label[l_nodes[dup_l_nodes]])
+  if (any(dup_l_nodes)) {
+    stop(str_c("Cannot clone already-duplicated nodes: ",
+               "`label` must not contain names of node labels ",
+               "that occur more than once in `phy`.\n",
+               "You supplied one or more labels that match ",
+               "more than one node: ",
+               str_c(head(dup_node_labels, 4), collapse = ","),
+               ifelse(length(dup_node_labels) > 4, "..", ""), "."
+    ))
   }
   
   label <- unique(label[label %in% phy$node.label])
@@ -321,6 +318,7 @@ clone_node = function(phy, label) {
   new_edge.length <- rep(NA, n_edge + n_new)
   insert_e <- rep(NA, n_new)
   insert_t <- rep(NA, n_new)
+  insert_e_length <- rep(NA, n_new)
   offset_e <- rep(0, n_edge)
   offset_t <- rep(0, n_tip)
   nodes <- rep(NA, n_new)
@@ -332,9 +330,12 @@ clone_node = function(phy, label) {
     nodes[i] <- which(phy$node.label == label[i])
     u <- nodes[i] + Ntip(phy)
     
+    u_edges <- which(edges[,1] == u)
+    insert_e_length[i] <- max(phy$edge.length[u_edges])
+    
     # Find the first edge from u. This is the row, before 
     # which to insert a new row in phy$edge etc.
-    insert_e[i] <- min(which(edges[,1] == u)) - 1
+    insert_e[i] <- min(u_edges) - 1
     # Update the offsets
     inc <- c(rep(0, insert_e[i]), rep(1, n_edge - insert_e[i]))
     offset_e <- offset_e + inc
@@ -361,7 +362,7 @@ clone_node = function(phy, label) {
   empty_t <- sort(insert_t) + (1:n_new)
   # For empty edge rows, copy u from next row
   new_edge[empty_e, ] <- c(new_edge[empty_e + 1, 1], empty_t)
-  new_edge.length[empty_e] <- 1
+  new_edge.length[empty_e] <- insert_e_length
   # For empty tip labels, use node labels in order
   new_tip.label[empty_t] <- label[order(nodes)]
   
@@ -373,32 +374,40 @@ clone_node = function(phy, label) {
     edge.length = new_edge.length
   )
   class(new_tree) <- "phylo"
+  
+  new_tree$node.label[phy$node.label == "##NOLABEL##"] <- ""
+  new_tree$tip.label[phy$tip.label == "##NOLABEL##"] <- ""
+  
   new_tree
 }
 
 
 #' Clone named tips
 #'
-#' #' Clones tips in a tree as self-sisters, under a new parent node.
-#'
-#' To clone a tip, resulting in \eqn{n} copies, include its tip label \ean{n-1}
-#' times in \code{label}.
-#'
-#' Cloned tips will appear under a new node of the same name. Duplicate tips
-#' will be assigned labels with a suffix \code{-1}, \code{-2}, \code{-3}, ...
+#' Clones tips as sisters of the original. Optionally, places the new clones and
+#' the original in ther own subgroup, in which case the node for the new
+#' subgroup is assigned the same label as the original tip.
 #'
 #' @param phy A phylo object. The tree to manipulate.
-#' @param labels A character vector containing tip labels.
+#' @param label A character vector containing tip labels.
+#' @param n A numeric vector. The number of clones to make.
+#' @param subgroup A logical. Whether to create a subgroup containing the new
+#'   clones and their original.
 #' @return A phylo object containing the modified tree.
-#' @return phy
-clone_tip = function(phy, label) {
+clone_tip = function(
+  phy, 
+  label, 
+  n = 1, 
+  subgroup = FALSE
+) {
   
   # Check phy
-  if (class(phy) != "phylo") {
-    cp <- class(phy)
-    stop(str_c("`phy` must be of class phylo.\n",
-               "You supplied an object of class ", cp, "."))
-  }
+  check <- .check_phy(phy)
+  if (!is.na(check$error_msg)) { stop(check$error_msg) }
+  # Note, if needed, this will add missing $node.label, $tip.label, $edge.length
+  phy <- check$phy
+  phy$node.label[phy$node.label == ""] <- "##NOLABEL##"
+  phy$tip.label[phy$tip.label == ""] <- "##NOLABEL##"
   
   # Check labels
   check_result <- .check_labels(phy, label, type = "tip")
@@ -408,40 +417,81 @@ clone_tip = function(phy, label) {
     warning(check_result$warning_msg) 
   }
   
-  for (l in unique(label)) {
-    n_dup <- sum(label == l)
+  # Check for duplicate tips that match label
+  l_tips <- which(phy$tip.label %in% label)
+  dup_l_tips <- duplicated(phy$tip.label[l_tips])
+  dup_tip_labels <- unique(phy$tip.label[l_tips[dup_l_tips]])
+  if (any(dup_l_tips)) {
+    stop(str_c("Cannot clone already-duplicated tips: ",
+               "`label` must not contain names of tip labels ",
+               "that occur more than once in `phy`.\n",
+               "You supplied one or more labels that match ",
+               "more than one tip: ",
+               str_c(head(dup_tip_labels, 4), collapse = ","),
+               ifelse(length(dup_tip_labels) > 4, "..", ""), "."
+               ))
+  }
+  
+  # Check n
+  if (!is.numeric(n)) {
+    cn <- class(n)
+    stop(str_c("`n` must be numeric.\n",
+               "You supplied an object of class ", cn, "."))
+  }
+  n_n <- length(n)
+  n_label <- length(label)
+  if (n_n != 1 & n_n != n_label) {
+    stop(str_c("`n` must be length 1 or the same length as `label`.\n",
+               "`label` is length ", n_label, " but `n` is length ", n_n, "."))
+  } else if (n_n == 1) {
+    n <- rep(n, n_label)
+  }
+  
+  n_label <- length(label)
+  is_dupl <- duplicated(label)
+  
+  for (i in (1:n_label)[!is_dupl]) {
+    l <- label[i]
+    l_tip <- which(phy$tip.label == l)[1]
+    orig_edge_length <- phy$edge.length[which(phy$edge[,2] == l_tip)]
     
-    for(i in (1:n_dup)) {
+    for(j in 1:n[i]) {
       
-      # clone a tip
       n_tips <- length(phy$tip.label)
-      location <- 
-        ifelse(i == 1,
-               # The first time, bind to tip
-               which(phy$tip.label == l),
-               # Afterwards, bind to newly created node
-               which(phy$node.label == "NA") + n_tips)
+      l_tip <- which(phy$tip.label == l)[1]
+      l_parent <- 
+        ifelse(subgroup, 
+               which(phy$node.label == "NA") + n_tips,
+               phy$edge[phy$edge[,2] == l_tip, 1])
+      
+      # Add a tip at the destination
       phy <-
         phy %>%
-        .bind_tip(edge.length = 1,
-                  # This is not the final label, but it
-                  # keeps the tip labels distinct for now
-                  tip.label = str_c(l, "-", i),
-                  where = location)
+        .bind_tip(
+          edge.length = 1,
+          # Temporary label avoids unexpected behaviour from bind.tip():
+          tip.label = str_c("#TEMP#"),
+          where = ifelse(subgroup & (j == 1), l_tip, l_parent)
+          )
+      phy$tip.label[phy$tip.label == "#TEMP#"] <- l
     }
     
-    # The original tip's branch length gets changed to 0,
-    # so ensure it's also 1:
-    dup_tips <- which(.remove_copy_suffix(phy$tip.label) == l)
-    dup_tip_edges <- which(phy$edge[,2] %in% dup_tips)
-    phy$edge.length[dup_tip_edges] <- 1
+    # Set total edge lengths the same as the original:
+    n_tips <- length(phy$tip.label)
+    is_target_daughter <- c(phy$tip.label == l, phy$node.label == "NA")
+    target_edges <- which(phy$edge[,2] %in% which(is_target_daughter))
+    if (subgroup) {
+      phy$edge.length[target_edges] <- orig_edge_length / 2
+    } else {
+      phy$edge.length[target_edges] <- orig_edge_length
+    }
     
     # label the newly created node
     phy$node.label[phy$node.label == "NA"] <- l
   }
   
-  phy$tip.label <- .add_copy_suffix(phy$tip.label)
-  phy$node.label <- .add_copy_suffix(phy$node.label)
+  phy$node.label[phy$node.label == "##NOLABEL##"] <- ""
+  phy$tip.label[phy$tip.label == "##NOLABEL##"] <- ""
   
   phy
 }
@@ -449,20 +499,16 @@ clone_tip = function(phy, label) {
 
 #' Collapse a node rootwards
 #'
-#' Note this will also multichotomise all nodes with a 0-length branch above
-#' them.
-#'
 #' @param phy A phylo object. The tree to manipulate.
-#' @param labels A character vector containing node labels.
+#' @param label A character vector containing node labels.
 #' @return A phylo object containing the modified tree.
 collapse_node = function(phy, label) {
   
   # Check phy
-  if (class(phy) != "phylo") {
-    cp <- class(phy)
-    stop(str_c("`phy` must be of class phylo.\n",
-               "You supplied an object of class ", cp, "."))
-  }
+  check <- .check_phy(phy)
+  if (!is.na(check$error_msg)) { stop(check$error_msg) }
+  # Note, if needed, this will add missing $node.label, $tip.label, $edge.length
+  phy <- check$phy
   
   # Check labels
   check_result <- .check_labels(phy, label, type = "node")
@@ -477,48 +523,13 @@ collapse_node = function(phy, label) {
   target_branch <- match(target_node, phy$edge[,2])
   
   # Reduce the branch above the target node to 0
+  phy$edge.length[phy$edge.length == 0] <- 0.11123
   phy$edge.length[target_branch] <- 0
-  
   # Remove 0-length branches
-  di2multi(phy)
-}
-
-
-#' Find topologically distinct duplicate tips
-#'
-#' Identifies duplicate tips that aren't sisters on equal-length branches. Is
-#' used by \code{phylo_average()} to check assumptions.
-#'
-#' @param phy A phylo object, the tree to examine.
-#' @return A character vector of tip labels.
-#' @noRd
-.which_nonsister_copies = function(phy) {
-  # Sister nodes in edge[,2] will share a parent in edge[,1]. Check if this is
-  # true, and that the branch lengths are equal.
-  df <-
-    data.frame(
-      u = phy$edge[,1],
-      v = phy$edge[,2],
-      len = phy$edge.length,
-      v_label_orig = phy$tip.label[phy$edge[,2]],
-      v_label = phy$tip.label[phy$edge[,2]] %>%
-        .remove_copy_suffix(),
-      stringsAsFactors = FALSE
-      ) %>%
-    # Keep only edges that end in tips
-    filter(!is.na(v_label)) %>%
-    # Group by tip label
-    group_by(v_label) %>%
-    mutate(
-      # Count the number of different parents
-      n_u = length(unique(u)),
-      # Count the number of different lengths
-      n_len = length(unique(len))
-      ) %>%
-    # Keep only those with >1 of either
-    filter(n_u > 1 | n_len > 1)
-  # Return their labels
-  df$v_label_orig
+  phy <- di2multi(phy)
+  phy$edge.length[phy$edge.length == 0.11123] <- 0
+  
+  phy
 }
 
 
