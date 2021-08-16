@@ -80,8 +80,17 @@ abridge_labels = function(phy) {
 #' @return A phlyo object, the manipulated tree.
 relabel_with_names = function(
   phy,
-  glottolog_version = get_newest_version()
+  glottolog_version
 ) {
+  
+  # Check glottolog_version
+  if (missing(glottolog_version)) {
+    glottolog_version <- .get_newest_version()
+  } else {
+    error_msg <- .check_glottolog_version(glottolog_version)
+    if (!is.na(error_msg)) { stop(error_msg) }
+    glottolog_version <- as.character(glottolog_version)
+  }
   
   # Check phy
   if (class(phy) != "phylo") {
@@ -179,7 +188,7 @@ extract_glottocode = function(labels) {
   regex <- "(?<=(^|\\[))([a-z]{4}|b10b|3adt)[0-9]{4}(?=(\\]|-[0-9]{1,3}$|$))"
   g <- str_extract(labels, regex)
   copy_suffix <- .extract_copy_suffix(labels)
-  str_c(g, "-", copy_suffix)
+  str_c(g, ifelse(str_length(copy_suffix) > 0, "-", ""), copy_suffix)
 }
 
 

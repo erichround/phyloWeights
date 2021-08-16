@@ -101,7 +101,7 @@ phylo_average = function(
   
   # Check phy's contents and their match with data
   for (i in 1:n_tree) {
-    phy_str <- ifelse(is_phylo, "`phy`", "`phy[[", i, "]]`")
+    phy_str <- ifelse(is_phylo, "`phy`", str_c("`phy[[", i, "]]`"))
     Each_phy <- ifelse(is_phylo, "`phy`", "Each tree in `phy`")
     each_phy <- ifelse(is_phylo, "`phy`", "each tree in `phy`")
     
@@ -205,9 +205,10 @@ phylo_average = function(
 
 
 #' ACL weights
-#' 
-#' Calculates phylogenetic weights (a.k.a. phylogenetic means) according to the classic method of Altschul, Carroll & Lipman DJ (1987).
-#' 
+#'
+#' Calculates phylogenetic weights (a.k.a. phylogenetic means) according to the
+#' classic method of Altschul, Carroll & Lipman DJ (1987).
+#'
 #' @param phy A phylo object.
 #' @return A vector of weights.
 ACL = function(phy) {

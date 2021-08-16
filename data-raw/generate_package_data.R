@@ -1,6 +1,6 @@
 # This script is for updating with version 4.4
 
-# Note: it uses the package function extract_glottocode()
+# Note: it uses the package functions extract_glottocode() and .name_to_label()
 
 #### EXTERNAL DATA
 
@@ -8,8 +8,9 @@
 # the appropriate name (you'll need to add a final "_vX.X")
 
 glottolog_trees_v4.4 <- ape::read.tree("data-raw/tree_glottolog_newick_4-4.txt")
-glottolog_geography_v4.4 <- read.csv("data-raw/languages_and_dialects_geo_4-4.csv",
-                                     stringsAsFactors = FALSE)
+glottolog_geography_v4.4 <- 
+  read.csv("data-raw/languages_and_dialects_geo_4-4.csv",
+           stringsAsFactors = FALSE)
 
 # Add the new external datasets 
 
@@ -30,9 +31,7 @@ extract_name = function(labels) {
 
 phy <- glottolog_trees_v4.4
 geo <- glottolog_geography_v4.4
-root_labels <- 
-  lapply(phy, function(p) p$node.label[1]) %>%
-  unlist()
+root_labels <- lapply(phy, function(p) p$node.label[1]) %>% unlist()
 
 
 ##### Tabulate the labels of families' trees
@@ -82,8 +81,10 @@ glottolog_phylo_geo_v4.4 <-
   
   # Add family names
   left_join(glottolog_family_labels_v4.4, by = "tree") %>%
-  select(glottocode, name, vertex_name,
-         family_name, everything()) %>%
+  select(glottocode, isocodes, name, level,
+         vertex_type, vertex_label, vertex_name, 
+         macroarea, latitude, longitude,
+         family_glottocode, family_name, tree) %>%
   arrange(glottocode) %>%
   as.data.frame()
 

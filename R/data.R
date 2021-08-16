@@ -11,9 +11,8 @@
 
 #' Trees from glottolog v4.4
 #'
-#' A multiPhylo object which provides a representation of 
-#' the phylogenetic relationships of the languages in
-#' glottolog.
+#' A multiPhylo object which provides a representation of the phylogenetic
+#' relationships of the languages in glottolog.
 #'
 #' @format A multiPhylo object
 #' @source \url{https://glottolog.org/meta/downloads}
@@ -22,8 +21,7 @@
 
 #' Geographical data from glottolog v4.3
 #'
-#' A dataset of geographical information about the
-#' languages in glottolog.
+#' A dataset of geographical information about the languages in glottolog.
 #'
 #' @format A dataframe:
 #' \describe{
@@ -41,8 +39,7 @@
 
 #' Geographical data from glottolog v4.4
 #'
-#' A dataset of geographical information about the
-#' languages in glottolog.
+#' A dataset of geographical information about the languages in glottolog.
 #'
 #' @format A dataframe:
 #' \describe{
@@ -61,13 +58,11 @@
 #' Sonority sequencing violation data in 496 languages, 
 #' from Yin (2020)
 #'
-#' A dataframe containing language identifiers and data
-#' on the presence of SSP violations in word-initial onsets
-#' and word-final codas, as used in:
-#' 
-#' Yin, Ruihua. 2020. “Violations of the Sonority Sequencing 
-#' Principle: How, and How Often?” 2020 Conference of the 
-#' Australian Linguistic Society, Brisbane. 
+#' A dataframe containing language identifiers and data on the presence of SSP
+#' violations in word-initial onsets and word-final codas, as used in:
+#'
+#' Yin, Ruihua. 2020. “Violations of the Sonority Sequencing Principle: How, and
+#' How Often?” 2020 Conference of the Australian Linguistic Society, Brisbane.
 #' https://als.asn.au/Conference/Program
 #'
 #' @format A dataframe:

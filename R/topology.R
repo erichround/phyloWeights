@@ -9,25 +9,27 @@
 #' By default, trees are returned from the most recent version of glottolog.
 #' Alternatively, an older version of glottolog can be specified.
 #'
-#' If only one tree is returned, it is returned as a \code{phylo} object. If
-#' multiple trees are returned, they are returned as a \code{multiPhylo} object.
-#'
 #' @param family A character vector. Elements are names of glottolog families
 #'   whose trees are to be returned. If \code{family} is left unspecified, all
 #'   trees are returned.
 #' @inheritParams get_glottolog_languages
-#' @return A multiPhylo object containing the glottolog trees.
+#' @return A \code{phylo} object containing one glottolog tree, or a
+#'   \code{multiPhylo} object containing multiple glottolog trees.
 get_glottolog_trees = function(
   family,
-  glottolog_version = get_newest_version()
+  glottolog_version
 ) {
   
   # Check glottolog_version
-  error_msg <- .check_glottolog_version(glottolog_version)
-  if (!is.na(error_msg)) { stop(error_msg) }
+  if (missing(glottolog_version)) {
+    glottolog_version <- .get_newest_version()
+  } else {
+    error_msg <- .check_glottolog_version(glottolog_version)
+    if (!is.na(error_msg)) { stop(error_msg) }
+    glottolog_version <- as.character(glottolog_version)
+  }
   
   # Choose appropriate dataset
-  glottolog_version <- as.character(glottolog_version)
   if (glottolog_version == "4.3") {
     phy <- glottolog_trees_v4.3
   } else if (glottolog_version == "4.4") {
@@ -162,13 +164,17 @@ bind_as_rake = function(phy) {
 #' @inheritParams get_glottolog_languages
 assemble_supertree = function(
   macro_groups,
-  glottolog_version = get_newest_version()
+  glottolog_version
 ) {
   
   # Check glottolog_version
-  error_msg <- .check_glottolog_version(glottolog_version)
-  if (!is.na(error_msg)) { stop(error_msg) }
-  glottolog_version <- as.character(glottolog_version)
+  if (missing(glottolog_version)) {
+    glottolog_version <- .get_newest_version()
+  } else {
+    error_msg <- .check_glottolog_version(glottolog_version)
+    if (!is.na(error_msg)) { stop(error_msg) }
+    glottolog_version <- as.character(glottolog_version)
+  }
   
   phy <- get_glottolog_trees(glottolog_version = glottolog_version)
   

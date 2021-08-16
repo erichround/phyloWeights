@@ -1,24 +1,37 @@
 # Glottolog metadata
 
 
-#' A simple glottolog language metadata table
+#' Simple language metadata
 #'
-#' Returns a dataframe of glottolog metadata with columns: \code{glottocode},
-#' \code{isocode}, \code{name}, \code{name_in_tree}, \code{position},
-#' \code{tree} and \code{tree_name}.
+#' Returns a dataframe of metadata on glottolog's languages.
 #'
-#' By default, returns metadata from the newest version of glottolog. Obtain
-#' metadata for older versions by setting the parameter \code{glottolog_version}.
+#' Returned columns are: \code{glottocode}, \code{isocodes}, \code{name},
+#' \code{name_in_tree}, \code{position}, \code{tree} and \code{tree_name}.
 #'
-#' @param glottolog_version A character string. Which glottolog version to use.
-#'   Currently, available options are \code{'4.3'} and \code{'4.4'}.
+#' @param glottolog_version A character string, specifying which glottolog
+#'   version to use. Currently available options are \code{'4.3'} and
+#'   \code{'4.4'}. If no value is specified then the newest available version is
+#'   used.
+#' @examples
+#' head(get_glottolog_languages())
+#' head(get_glottolog_languages(glottolog_version = "4.3"))
 get_glottolog_languages = function(
-  glottolog_version = get_newest_version()
+  glottolog_version
 ) {
+  
+  # Check glottolog_version
+  if (missing(glottolog_version)) {
+    glottolog_version <- .get_newest_version()
+  } else {
+    error_msg <- .check_glottolog_version(glottolog_version)
+    if (!is.na(error_msg)) { stop(error_msg) }
+    glottolog_version <- as.character(glottolog_version)
+  }
+  
   get_glottolog_phylo_geo(glottolog_version) %>%
     select(
       glottocode,
-      isocode = isocodes,
+      isocodes,
       name,
       name_in_tree = vertex_name,
       position = vertex_type,
@@ -28,19 +41,30 @@ get_glottolog_languages = function(
 }
 
 
-#' A simple glottolog language family metadata table
+#' Simple family metadata
 #'
-#' Returns a dataframe of glottolog metadata with columns: \code{tree},
-#' \code{tree_name}, \code{n_tips}, \code{n_nodes} and \code{main_macroarea}. 
+#' Returns a dataframe of metadata on glottolog's language families.
 #'
-#' By default, returns metadata from the newest version of glottolog. Obtain
-#' metadata for older versions by setting the parameter
-#' \code{glottolog_version}.
+#' Returned columns are: \code{tree}, \code{tree_name}, \code{n_tips},
+#' \code{n_nodes} and \code{main_macroarea}.
 #'
 #' @inheritParams get_glottolog_languages
+#' @examples
+#' head(get_glottolog_families())
+#' head(get_glottolog_families(glottolog_version = "4.3"))
 get_glottolog_families = function(
-  glottolog_version = get_newest_version()
+  glottolog_version
 ) {
+  
+  # Check glottolog_version
+  if (missing(glottolog_version)) {
+    glottolog_version <- .get_newest_version()
+  } else {
+    error_msg <- .check_glottolog_version(glottolog_version)
+    if (!is.na(error_msg)) { stop(error_msg) }
+    glottolog_version <- as.character(glottolog_version)
+  }
+  
   main_macro <-
     get_glottolog_phylo_geo(glottolog_version) %>%
     filter(!is.na(tree)) %>%
@@ -69,29 +93,33 @@ get_glottolog_families = function(
 }
 
 
-#' An extended glottolog metadata table
+#' Extended glottolog metadata
 #'
-#' Returns a dataframe of glottolog geographical and phylogenetic metadata with
-#' columns: \code{glottocode}, \code{name}, \code{vertex_name},
-#' \code{family_name}, \code{isocodes}, \code{level}, \code{macroarea},
-#' \code{latitude}, \code{longitude}, \code{vertex_type}, \code{vertex_label},
-#' \code{tree} and \code{family_glottocode}.
-#'
-#' By default, returns metadata from the newest version of glottolog. Obtain
-#' metadata for older versions by setting the parameter
-#' \code{glottolog_version}.
+#' Returns a dataframe of glottolog geographical and phylogenetic metadata.
 #' 
+#' Returned columns are: \code{glottocode}, \code{isocodes}, \code{name}, \code{level},
+#' \code{vertex_type}, \code{vertex_label}, \code{vertex_name},
+#' \code{macroarea}, \code{latitude}, \code{longitude},
+#' \code{family_glottocode}, \code{family_name} and \code{tree}.
+#'
 #' @inheritParams get_glottolog_languages
+#' @examples
+#' head(get_glottolog_phylo_geo())
+#' head(get_glottolog_phylo_geo(glottolog_version = "4.3"))
 get_glottolog_phylo_geo = function(
-  glottolog_version = get_newest_version()
+  glottolog_version
 ) {
   
   # Check glottolog_version
-  error_msg <- .check_glottolog_version(glottolog_version)
-  if (!is.na(error_msg)) { stop(error_msg) }
+  if (missing(glottolog_version)) {
+    glottolog_version <- .get_newest_version()
+  } else {
+    error_msg <- .check_glottolog_version(glottolog_version)
+    if (!is.na(error_msg)) { stop(error_msg) }
+    glottolog_version <- as.character(glottolog_version)
+  }
   
   # Choose appropriate dataset
-  glottolog_version <- as.character(glottolog_version)
   if (glottolog_version == "4.3") {
     phylo_geo <- glottolog_phylo_geo_v4.3
   } else if (glottolog_version == "4.4") {
@@ -102,42 +130,41 @@ get_glottolog_phylo_geo = function(
 }
 
 
-#' The current glottolog version
-#'
-#' Returns the newest version of glottolog for which data is included in this
-#' package, which is \code{'4.4'}.
-#'
-#' @return A character string.
-get_newest_version = function() {
-  "4.4"
-}
-
-
 #' Tree numbers of glottolog families
 #' 
 #' Returns the tree number of one or more glottolog families.
 #' 
-#' By default, returns metadata from the newest version of glottolog. Obtain
-#' metadata for older versions by setting the parameter
-#' \code{glottolog_version}.
-#' 
 #' @inheritParams get_glottolog_trees
 #' @return A named vector of integers, giving the tree numbers and the
 #'   family names as the vector names.
+#' @examples
+#' which_tree("Caddoan")
+#' which_tree(c("Caddoan", "Tangkic"), glottolog_version = "4.3")
+#' # If some family names are unrecognized, a warning is issued
+#' which_tree(c("Caddoan", "Zzz"), glottolog_version = "4.4")
+#' \dontrun{
+#' # If no family names are recognized, an error results
+#' which_tree()
+#' which_tree("Zzz")
+#' }
 which_tree = function(
-  family = NULL,
-  glottolog_version = get_newest_version()
+  family,
+  glottolog_version
 ) {
   
-  if (is.null(family)) {
+  if (missing(family)) {
     stop(str_c("A value for `family` needs to be supplied.\n",
                "You didn't supply one."))
   }
   
   # Check glottolog_version
-  error_msg <- .check_glottolog_version(glottolog_version)
-  if (!is.na(error_msg)) { stop(error_msg) }
-  glottolog_version <- as.character(glottolog_version)
+  if (missing(glottolog_version)) {
+    glottolog_version <- .get_newest_version()
+  } else {
+    error_msg <- .check_glottolog_version(glottolog_version)
+    if (!is.na(error_msg)) { stop(error_msg) }
+    glottolog_version <- as.character(glottolog_version)
+  }
   
   # Check family
   check_result <- 
@@ -152,6 +179,17 @@ which_tree = function(
   tree_nums <- f$tree[match(family, f$tree_name)]
   names(tree_nums) <- family
   tree_nums
+}
+
+
+#' The current glottolog version
+#'
+#' Returns the newest version of glottolog for which data is included in this
+#' package, which is \code{'4.4'}.
+#'
+#' @return A character string.
+.get_newest_version = function() {
+  "4.4"
 }
 
 

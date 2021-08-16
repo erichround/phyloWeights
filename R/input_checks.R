@@ -33,8 +33,8 @@
   }
   
   if (!(glottolog_version %in% available_versions)) {
-    return(str_c("`glottolog_version` must be one the following values: ",
-                 str_c(available_versions, collapse = ", "), ".\n",
+    return(str_c("`glottolog_version` must be one the following values: '",
+                 str_c(available_versions, collapse = "', '"), "'.\n",
                  "You have supplied ", glottolog_version, "."))
   }
   
@@ -203,7 +203,7 @@
 #' Checks if object phy has is class phylo. If phy is missing tip.label
 #' and/or node.label, then these are added, and the labels are \code{''}.
 #'
-#' @param phy
+#' @param phy A phlyo object
 #' @return A list with elements error_msg and warning_msg (which are NA is
 #'   there's no message) and phy, a possibly modified version of phy
 .check_phy = function(phy) {
