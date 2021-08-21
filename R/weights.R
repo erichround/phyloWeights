@@ -7,7 +7,7 @@
 #' and applies the resulting sets of weights to one ore more numerical variables
 #' which characterize the languages in the trees, resulting in
 #' phylogenetically-sensitive (i.e., phylogenetically-weighted) averages. If the
-#' data is in the form of binary {0,1} values, this is equivalent to a
+#' data is in the form of binary \{0,1\} values, this is equivalent to a
 #' phylogenetically-sensitive proportion.
 #'
 #' The function returns a list, containing: \code{phy}, the input tree(s);
@@ -207,7 +207,7 @@ phylo_average = function(
 #' ACL weights
 #'
 #' Calculates phylogenetic weights (a.k.a. phylogenetic means) according to the
-#' classic method of Altschul, Carroll & Lipman DJ (1987).
+#' classic method of Altschul, Carroll & Lipman (1987).
 #'
 #' @param phy A phylo object.
 #' @return A vector of weights.
@@ -230,10 +230,8 @@ ACL = function(phy) {
 #' Calculates phylogenetic weights according the to BranchManager method of
 #' Stone & Sidow (2007).
 #'
-#' Adapted from original R code by Eric A. Stone available at
-#' \url{https://static-content.springer.com/esm/art%3A10.1186%2F1471-2105-8-222/MediaObjects/12859_2007_1594_MOESM3_ESM.txt}.
-#' The function \code{edgeroot()} has been re-implemented to repair a dependency
-#' on an old version of the ape package.
+#' Adapted from original R code by Eric A. Stone, in supplementary material to
+#' Stone & Sidow (2007).
 #'
 #' @param phy A phylo object
 #' @return A vector of weights
@@ -260,6 +258,8 @@ BM <- function(phy) {
   totallength <- 0
   for (i in 1:numedges) {
     curedgelen <- phy$edge.length[i]
+    # Here, the function .edgeroot() has been re-implemented to repair a 
+    # dependency on an old version of the ape package.
     W <- W + curedgelen*ACL(.edgeroot(i, phy))
     totallength <- totallength + curedgelen
   }
@@ -269,14 +269,13 @@ BM <- function(phy) {
 
 
 #' Edgeroot
-#' 
-#' The function edgeroot takes a rooted 
-#' tree (input phy) and reroots that tree 
-#' at the midpoint of the specified edge 
-#' 
+#'
+#' The function edgeroot takes a rooted tree (input phy) and reroots that tree
+#' at the midpoint of the specified edge
+#'
 #' @param x An integer, specifying an egde.
 #' @param phy A phylo object, the tree to manipulate.
-#' @return A phylo object, the manipulated tree. 
+#' @return A phylo object, the manipulated tree.
 #' @noRd
 .edgeroot = function(x, phy) {
   
@@ -285,9 +284,8 @@ BM <- function(phy) {
     phy$root.edge <- setdiff(phy$edge[,1], phy$edge[,2])
   }
   
-  # Insert a new node with a child
-  # tip "temp_tip", appended from the mid-
-  # point of edge x
+  # Insert a new node with a child tip "temp_tip", appended from the mid- point
+  # of edge x
   tipward_node <- phy$edge[x,2]
   current_edge_length <- phy$edge.length[x]
   newtip_phy <- 

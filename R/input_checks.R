@@ -206,6 +206,7 @@
 #' @param phy A phlyo object
 #' @return A list with elements error_msg and warning_msg (which are NA is
 #'   there's no message) and phy, a possibly modified version of phy
+#' @noRd
 .check_phy = function(phy) {
   
   # Check class

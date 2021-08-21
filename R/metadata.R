@@ -188,6 +188,7 @@ which_tree = function(
 #' package, which is \code{'4.4'}.
 #'
 #' @return A character string.
+#' @noRd
 .get_newest_version = function() {
   "4.4"
 }

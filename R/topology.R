@@ -15,6 +15,16 @@
 #' @inheritParams get_glottolog_languages
 #' @return A \code{phylo} object containing one glottolog tree, or a
 #'   \code{multiPhylo} object containing multiple glottolog trees.
+#' @examples 
+#' 
+#' library(ape)
+#' tree_totonacan <- get_glottolog_trees(family = "Totonacan")
+#' tree_totonacan_v4.3 <- get_glottolog_trees("Totonacan", "4.3")
+#' plot(tree_totonacan)
+#' plot(tree_totonacan_v4.3)
+#' trees <- get_glottolog_trees(family = c("Caddoan", "Tangkic"))
+#' plot(trees[[1]])
+#' plot(trees[[2]])
 get_glottolog_trees = function(
   family,
   glottolog_version
@@ -69,6 +79,19 @@ get_glottolog_trees = function(
 #'
 #' @param phy A multiphylo object containing the trees to be combined.
 #' @return A phylo object, a single tree.
+#' @examples 
+#' library(ape)
+#' arnhem_hypothesis <- 
+#'   c("Gunwinyguan", "Mangarrayi-Maran", "Maningrida",
+#'     "Kungarakany", "Gaagudju")
+#' trees <- get_glottolog_trees(arnhem_hypothesis)
+#' simple_rake <- bind_as_rake(trees)
+#' rake_in_rake <- bind_as_rake(c(bind_as_rake(trees[1:3]), trees[4:5]))
+#' plot(simple_rake)
+#' plot(rake_in_rake)
+#' # If `phy` contains only one tree, a warning is issued.
+#' mono_rake <- bind_as_rake(trees[3])
+#' plot(mono_rake)
 bind_as_rake = function(phy) {
   
   if (class(phy) != "multiPhylo") {
@@ -157,11 +180,26 @@ bind_as_rake = function(phy) {
 #' \code{macro_groups} to \code{NULL} causes the tree to be assembled without
 #' groups.
 #'
-#' @param macro_groups A list of character vectors, in whic each vector contains
-#'   the names of one or more macroareas which define a group. Alternatively,
-#'   setting \code{macro_groups} to \code{NULL} causes the tree to be assembled
-#'   without groups.
+#' @param macro_groups A list of character vectors, in which each vector
+#'   contains the names of one or more macroareas which define a group.
+#'   Alternatively, setting \code{macro_groups} to \code{NULL} causes the tree
+#'   to be assembled without groups.
 #' @inheritParams get_glottolog_languages
+#' @examples 
+#' 
+#' # Supertree whose first order branches are the glottolog macroareas
+#' supertree <- assemble_supertree()
+#' supertree_v.4.3 <- assemble_supertree(glottolog_version = "4.3")
+#' # Supertree whose first order branches are glottolog families
+#' supertree <- assemble_supertree(macro_groups = NULL)
+#' # Supertree whose first order branches are the African & Eurasian macroareas
+#' supertree <- assemble_supertree(macro_groups = list("Africa", "Eurasia"))
+#' # Supertree whose first order branches are the glottolog macroareas, but
+#' # with the Americas combined:
+#' supertree <- assemble_supertree(
+#'   macro_groups = list("Africa", "Australia", "Eurasia", "Papunesia", 
+#'                       c("South America", "North America"))
+#'   )
 assemble_supertree = function(
   macro_groups,
   glottolog_version
@@ -242,6 +280,15 @@ assemble_supertree = function(
 #' @param phy A phylo object. The tree to manipulate.
 #' @param label A character vector containing tip labels.
 #' @return A phylo object containing the modified tree.
+#' @examples 
+#' 
+#' library(ape)
+#' tree <- abridge_labels(get_glottolog_trees("Tangkic"))
+#' plot(tree)
+#' nodelabels(tree$node.label)
+#' tree2 <- select_tip(tree, c("lard1243", "kang1283", "kaya1319"))
+#' plot(tree2)
+#' nodelabels(tree2$node.label)
 select_tip = function(phy, label) {
   
   # Check phy
@@ -258,8 +305,7 @@ select_tip = function(phy, label) {
     warning(check_result$warning_msg) 
   }
   
-  # Keep only the named tips, including the
-  # nodes newly cloned as tips
+  # Keep only the named tips
   drop_tips <- setdiff(phy$tip.label, label)
   phy <- drop.tip(phy, drop_tips, collapse.singles = FALSE)
   
@@ -271,8 +317,8 @@ select_tip = function(phy, label) {
 #'
 #' Clones internal nodes in a tree as self-daughter tips.
 #'
-#' The length of any new branch, between node n and its new clone, is set equal to the
-#' longest of the original branches directly below node n.
+#' The length of any new branch, between node n and its new clone, is set equal
+#' to the longest of the original branches directly below node n.
 #'
 #' @param phy A phylo object. The tree to manipulate.
 #' @param label A character vector containing node labels.

@@ -24,6 +24,6 @@ Collate:
     'topology.R'
     'weights.R'
     'zzz.R'
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 Suggests: 
     testthat
