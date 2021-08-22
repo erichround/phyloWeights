@@ -8,10 +8,49 @@
 #' Glottocodes comprise four lowercase letters (or b10b or 3adt) followed by
 #' four numbers, and are only identified if they are initial in the string or
 #' are preceded by [.
+#' 
+#' Also recognizes and retains duplicate suffixes, i.e., a hyphen followed by
+#' one or more numerals at the end of the string (see
+#' \link{apply_duplicate_suffixes}).
 #'
 #' @param phy A phylo or multiPhylo object, containing one or more trees to
 #'   manipulate.
 #' @return A phylo or multiPhylo object, the manipulated tree(s).
+#' @examples 
+#' 
+#' library(ape)
+#' 
+#' tree <- get_glottolog_trees("Koreanic")
+#' plot(tree)
+#' nodelabels(tree$node.label)
+#' tree2 <- abridge_labels(tree)
+#' plot(tree2)
+#' nodelabels(tree2$node.label)
+#' 
+#' # Retain duplicate suffixes:
+#' tree3 <- clone_tip(tree, "Jollado[chol1278]", n = 2, subgroup = TRUE)
+#' tree3a <- apply_duplicate_suffixes(tree3)
+#' plot(tree3a)
+#' nodelabels(tree3a$node.label)
+#' tree4 <- abridge_labels(tree3a)
+#' plot(tree4)
+#' nodelabels(tree4$node.label)
+#' 
+#' # A warning is issued if any label does not contain a glottocode
+#' supertree <- assemble_supertree() # contains nodes without glottocodes
+#' supertree2 <- abridge_labels(assemble_supertree())
+#' 
+#' # Applied to a `multiPhylo` object:
+#' trees <- get_glottolog_trees(c("Kartvelian", "Basque"))
+#' trees2 <- abridge_labels(trees)
+#' plot(trees[[1]])
+#' nodelabels(trees[[1]]$node.label)
+#' plot(trees2[[1]])
+#' nodelabels(trees2[[1]]$node.label)
+#' plot(trees[[2]])
+#' nodelabels(trees[[2]]$node.label)
+#' plot(trees2[[2]])
+#' nodelabels(trees2[[2]]$node.label) 
 abridge_labels = function(phy) {
   
   # Check phy
@@ -71,13 +110,42 @@ abridge_labels = function(phy) {
 #' Looks up glottolog language names corresponding to glottocodes and replaces
 #' tip and node labels, which contain glottocodes, with the appropriate names.
 #'
+#' Also recognizes and retains duplicate suffixes, i.e., a hyphen followed by
+#' one or more numerals at the end of the string (see
+#' \link{apply_duplicate_suffixes}).
+#'
 #' Labels without glottocodes are left unchanged and a warning is given. The
 #' version of glottolog to use for look-up can be controlled with
 #' \code{glottolog_version}.
-#' 
+#'
 #' @param phy A phlyo object, the tree to manipulate.
 #' @inheritParams get_glottolog_languages
 #' @return A phlyo object, the manipulated tree.
+#'
+#' @examples
+#'
+#' library(ape)
+#'
+#' # Replace full glottolog labels with names
+#' tree <-get_glottolog_trees("Kresh-Aja")
+#' plot(tree)
+#' nodelabels(tree$node.label)
+#' tree2 <- relabel_with_names(tree)
+#' plot(tree2)
+#' nodelabels(tree2$node.label)
+#'
+#' # Replace abridged labels with names
+#' tree3 <- abridge_labels(tree)
+#' plot(tree3)
+#' nodelabels(tree3$node.label)
+#' tree4 <- relabel_with_names(tree3)
+#' plot(tree4)
+#' nodelabels(tree4$node.label)
+#'
+#' # Use names from earlier glottolog version:
+#' tree5 <- relabel_with_names(tree, glottolog_version = "4.3")
+#' plot(tree5)
+#' nodelabels(tree5$node.label)
 relabel_with_names = function(
   phy,
   glottolog_version
@@ -124,9 +192,7 @@ relabel_with_names = function(
                name_base = vertex_name),
       by = "glotto_base"
     ) %>%
-    mutate(
-      name = str_c(name_base, "-", copy_suffix)
-    )
+    mutate(name = str_c(name_base, .hyphenate(copy_suffix)))
   
   missing_tips <- 
     filter(labels_df, is.na(name) & vertex == "tip")$label
@@ -179,16 +245,27 @@ relabel_with_names = function(
 #' four numbers, and are only identified if they are initial in the string or
 #' are preceded by [.
 #'
+#' Also recognizes and retains duplicate suffixes, i.e., a hyphen followed by
+#' one or more numerals at the end of the string (see
+#' \link{apply_duplicate_suffixes}).
 #'
 #' @param label A string
 #' @return A string
+#'
+#' @examples
+#'
+#' extract_glottocode("DongoKresh[dong1296]-l-")
+#' extract_glottocode(c("DongoKresh[dong1296]-l-", "Goro-Golo[orlo1238]"))
+#'
+#' # Duplicate suffixes are recognised and retained
+#' extract_glottocode(c("Goro-Golo[orlo1238]-1", "Goro-Golo[orlo1238]-2"))
 extract_glottocode = function(labels) {
   # note: two glottocodes contain numbers in the intial
   #       four characters: b10b and 3adt
   regex <- "(?<=(^|\\[))([a-z]{4}|b10b|3adt)[0-9]{4}(?=(\\]|-[0-9]{1,3}$|$))"
   g <- str_extract(labels, regex)
   copy_suffix <- .extract_copy_suffix(labels)
-  str_c(g, ifelse(str_length(copy_suffix) > 0, "-", ""), copy_suffix)
+  str_c(g, .hyphenate(copy_suffix))
 }
 
 
@@ -197,17 +274,48 @@ extract_glottocode = function(labels) {
 #' Suffixes are applied to ensure tip labels and node labels are not duplicates.
 #' Suffixes have the form -1, -2, -3, ...
 #'
-#' The function recognises existing duplicate suffixes and deals with them in
+#' The function recognizes existing duplicate suffixes and deals with them in
 #' one of two ways. If a label has n duplicates that are already suffixed -1,
 #' -2, ... -n, then the suffixes are not changed. Under any other conditions,
 #' old suffixes are removed and new ones applied.
 #'
-#' Suffixation of tips and of nodes are handled independantly of one another.
+#' Suffixation of tips and of nodes are handled independently of one another.
 #'
 #' @param phy A phylo object, the tree whose labels are to have copy suffixes
 #'   applied.
 #' @return A phylo object, the same tree but with suffixes applied to the
 #'   labels.
+#' @examples 
+#' 
+#' library(ape)
+#' 
+#' tree <- abridge_labels(get_glottolog_trees("Koreanic"))
+#' plot(tree)
+#' nodelabels(tree$node.label)
+#' tree2 <- clone_tip(tree, "chol1278", n = 2, subgroup = TRUE)
+#' plot(tree2)
+#' nodelabels(tree2$node.label)
+#' # Technically, tree2 is ill-formed because it has duplicate tip labels.
+#' # Note how this causes problems if we try to clone one of them, since it
+#' # is unclear which should be cloned:
+#' \dontrun{
+#' tree2a <- clone_tip(tree2, "chol1278")
+#' }
+#' 
+#' # Suffixation of duplicate tips
+#' tree3 <- apply_duplicate_suffixes(tree2)
+#' plot(tree3)
+#' nodelabels(tree3$node.label)
+#' 
+#' # Once they are suffixed, these tips can be cloned successfully:
+#' tree4 <- clone_tip(tree3, c("chol1278-2", "chol1278-3"), subgroup = TRUE)
+#' plot(tree4)
+#' nodelabels(tree4$node.label)
+#' # Suffixing is applied across all tips that share a glottocode, and
+#' # separately, across all nodes that share a glottocode:
+#' tree5 <- apply_duplicate_suffixes(tree4)
+#' plot(tree5)
+#' nodelabels(tree5$node.label)
 apply_duplicate_suffixes = function(
   phy
 ) {
@@ -217,23 +325,6 @@ apply_duplicate_suffixes = function(
   if (!is.na(check$error_msg)) { stop(check$error_msg) }
   # Note, if needed, this will add missing phy$node.label, phy$tip.label
   phy <- check$phy
-  
-  # # Check label_missing_as
-  # cl <- class(label_missing_as)
-  # if (!is.character(label_missing_as)) {
-  #   stop(str_c("`label_missing_as` must be a character string.]n",
-  #              "You supplied an object of class `", cl, "`."))
-  # }
-  # llen <- length(label_missing_as)
-  # if (llen > 1) {
-  #   warning(str_c("`label_missing_as` should be length 1.\n",
-  #                 "You supplied a vector length ", llen, ". ",
-  #                 "Only the first element has been used."))
-  # }
-  # if (llen == 0) {
-  #   stop(str_c("`label_missing_as` should be length 1.\n",
-  #              "You supplied a vector length 0."))
-  # }
   
   # Helper function
   reassign_sufnum = function(x) {
@@ -262,7 +353,7 @@ apply_duplicate_suffixes = function(
     group_by(orig_base, is_node) %>%
     mutate(
       n_type = n(),
-      new_suf = str_c("-", reassign_sufnum(orig_suf)),
+      new_suf = .hyphenate(reassign_sufnum(orig_suf)),
       is_suffixable = (n_type > 1) & (str_length(orig_base) != 0),
       new = str_c(orig_base, ifelse(is_suffixable, new_suf, ""))
     )
@@ -293,7 +384,7 @@ apply_duplicate_suffixes = function(
     group_by(x) %>%
     mutate(
       n = n(), 
-      suffix = ifelse(n > 1, str_c("-", row_number()), ""),
+      suffix = ifelse(n > 1, .hyphenate(row_number()), ""),
       x = str_c(x, suffix)
       ) %>%
     .$x
@@ -386,4 +477,13 @@ apply_duplicate_suffixes = function(
     str_replace_all("\\(", "{") %>%
     str_replace_all("\\)", "}") %>%
     str_remove_all("[' ]")
+}
+
+#' Add a hyphen before a nonzero-length string
+#' 
+#' @param x A character vector
+#' @return A character vector
+#' @noRd
+.hyphenate = function(x) {
+  str_c(ifelse(str_length(x) == 0, "", "-"), x)
 }

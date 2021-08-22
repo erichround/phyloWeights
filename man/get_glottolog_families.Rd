@@ -2,20 +2,24 @@
 % Please edit documentation in R/metadata.R
 \name{get_glottolog_families}
 \alias{get_glottolog_families}
-\title{A simple glottolog language family metadata table}
+\title{Simple family metadata}
 \usage{
-get_glottolog_families(glottolog_version = get_newest_version())
+get_glottolog_families(glottolog_version)
 }
 \arguments{
-\item{glottolog_version}{A character string. Which glottolog version to use.
-Currently, available options are \code{'4.3'} and \code{'4.4'}.}
+\item{glottolog_version}{A character string, specifying which glottolog
+version to use. Currently available options are \code{'4.3'} and
+\code{'4.4'}. If no value is specified then the newest available version is
+used.}
 }
 \description{
-Returns a dataframe of glottolog metadata with columns: \code{tree},
-\code{tree_name}, \code{n_tips}, \code{n_nodes} and \code{main_macroarea}.
+Returns a dataframe of metadata on glottolog's language families.
 }
 \details{
-By default, returns metadata from the newest version of glottolog. Obtain
-metadata for older versions by setting the parameter
-\code{glottolog_version}.
+Returned columns are: \code{tree}, \code{tree_name}, \code{n_tips},
+\code{n_nodes} and \code{main_macroarea}.
+}
+\examples{
+head(get_glottolog_families())
+head(get_glottolog_families(glottolog_version = "4.3"))
 }

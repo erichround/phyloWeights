@@ -22,10 +22,10 @@ A list, containing phy, data, and dataframes: ACL_weights,
 \description{
 Calculates phylogenetic weights according to the ACL method (see \link{ACL})
 and BranchManager method (see \link{BM}), for one or more reference trees,
-and applies the resulting sets of weights to one ore more numerical variables
+and applies the resulting sets of weights to one or more numerical variables
 which characterize the languages in the trees, resulting in
 phylogenetically-sensitive (i.e., phylogenetically-weighted) averages. If the
-data is in the form of binary {0,1} values, this is equivalent to a
+data is in the form of binary \{0,1\} values, this is equivalent to a
 phylogenetically-sensitive proportion.
 }
 \details{
@@ -41,4 +41,28 @@ phylogenetic weights obtained using the BM method. Dataframe
 column in \code{data}, and contains phylogenetically-sensitive averages
 obtained using the ACL method. Dataframe \code{BM_averages} is similar but
 with phylogenetically-sensitive averages obtained using the BM method.
+}
+\examples{
+
+library(ape)
+
+# A dataframe of language data, with columns: language, is_SOV, n_consonants
+dat <- data.frame(
+  language = c("A", "B", "C", "D"), 
+  is_SOV = c(1, 1, 1, 0),
+  n_consonants = c(18, 20, 22, 40))
+# Three trees, representing three genealogical hypotheses, that relate
+# the same languages A,B,C,D:
+trees <- c(
+  read.tree(text = "(((A:1,B:1,C:1):1,D:2):0.3);"),
+  read.tree(text = "(((A:0.2,B:0.2,C:0.2):1.8,D:2):0.3);"),
+  read.tree(text = "(((A:1.8,B:1.8,C:1.8):0.2,D:2):0.3);"))
+p_ave <- phylo_average(phy = trees, data = dat)
+# Phylogenetic weights, calculated from the trees:
+p_ave$ACL_weights
+p_ave$BM_weights
+# Phylogenetically-weighted averages, or, for binary data, phylogenetically-
+# weighted proportions
+p_ave$ACL_averages
+p_ave$BM_averages
 }

@@ -14,8 +14,7 @@ A multiPhylo object
 glottolog_trees_v4.4
 }
 \description{
-A multiPhylo object which provides a representation of 
-the phylogenetic relationships of the languages in
-glottolog.
+A multiPhylo object which provides a representation of the phylogenetic
+relationships of the languages in glottolog.
 }
 \keyword{datasets}

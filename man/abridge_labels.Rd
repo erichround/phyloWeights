@@ -21,4 +21,44 @@ labels lack a glottocode substring, a warning is given.
 Glottocodes comprise four lowercase letters (or b10b or 3adt) followed by
 four numbers, and are only identified if they are initial in the string or
 are preceded by [.
+
+Also recognizes and retains duplicate suffixes, i.e., a hyphen followed by
+one or more numerals at the end of the string (see
+\link{apply_duplicate_suffixes}).
+}
+\examples{
+
+library(ape)
+
+tree <- get_glottolog_trees("Koreanic")
+plot(tree)
+nodelabels(tree$node.label)
+tree2 <- abridge_labels(tree)
+plot(tree2)
+nodelabels(tree2$node.label)
+
+# Retain duplicate suffixes:
+tree3 <- clone_tip(tree, "Jollado[chol1278]", n = 2, subgroup = TRUE)
+tree3a <- apply_duplicate_suffixes(tree3)
+plot(tree3a)
+nodelabels(tree3a$node.label)
+tree4 <- abridge_labels(tree3a)
+plot(tree4)
+nodelabels(tree4$node.label)
+
+# A warning is issued if any label does not contain a glottocode
+supertree <- assemble_supertree() # contains nodes without glottocodes
+supertree2 <- abridge_labels(assemble_supertree())
+
+# Applied to a `multiPhylo` object:
+trees <- get_glottolog_trees(c("Kartvelian", "Basque"))
+trees2 <- abridge_labels(trees)
+plot(trees[[1]])
+nodelabels(trees[[1]]$node.label)
+plot(trees2[[1]])
+nodelabels(trees2[[1]]$node.label)
+plot(trees[[2]])
+nodelabels(trees[[2]]$node.label)
+plot(trees2[[2]])
+nodelabels(trees2[[2]]$node.label) 
 }

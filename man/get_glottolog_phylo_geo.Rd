@@ -2,23 +2,26 @@
 % Please edit documentation in R/metadata.R
 \name{get_glottolog_phylo_geo}
 \alias{get_glottolog_phylo_geo}
-\title{An extended glottolog metadata table}
+\title{Extended glottolog metadata}
 \usage{
-get_glottolog_phylo_geo(glottolog_version = get_newest_version())
+get_glottolog_phylo_geo(glottolog_version)
 }
 \arguments{
-\item{glottolog_version}{A character string. Which glottolog version to use.
-Currently, available options are \code{'4.3'} and \code{'4.4'}.}
+\item{glottolog_version}{A character string, specifying which glottolog
+version to use. Currently available options are \code{'4.3'} and
+\code{'4.4'}. If no value is specified then the newest available version is
+used.}
 }
 \description{
-Returns a dataframe of glottolog geographical and phylogenetic metadata with
-columns: \code{glottocode}, \code{name}, \code{vertex_name},
-\code{family_name}, \code{isocodes}, \code{level}, \code{macroarea},
-\code{latitude}, \code{longitude}, \code{vertex_type}, \code{vertex_label},
-\code{tree} and \code{family_glottocode}.
+Returns a dataframe of glottolog geographical and phylogenetic metadata.
 }
 \details{
-By default, returns metadata from the newest version of glottolog. Obtain
-metadata for older versions by setting the parameter
-\code{glottolog_version}.
+Returned columns are: \code{glottocode}, \code{isocodes}, \code{name}, \code{level},
+\code{vertex_type}, \code{vertex_label}, \code{vertex_name},
+\code{macroarea}, \code{latitude}, \code{longitude},
+\code{family_glottocode}, \code{family_name} and \code{tree}.
+}
+\examples{
+head(get_glottolog_phylo_geo())
+head(get_glottolog_phylo_geo(glottolog_version = "4.3"))
 }

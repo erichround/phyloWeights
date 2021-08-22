@@ -4,15 +4,17 @@
 \alias{which_tree}
 \title{Tree numbers of glottolog families}
 \usage{
-which_tree(family = NULL, glottolog_version = get_newest_version())
+which_tree(family, glottolog_version)
 }
 \arguments{
 \item{family}{A character vector. Elements are names of glottolog families
 whose trees are to be returned. If \code{family} is left unspecified, all
 trees are returned.}
 
-\item{glottolog_version}{A character string. Which glottolog version to use.
-Currently, available options are \code{'4.3'} and \code{'4.4'}.}
+\item{glottolog_version}{A character string, specifying which glottolog
+version to use. Currently available options are \code{'4.3'} and
+\code{'4.4'}. If no value is specified then the newest available version is
+used.}
 }
 \value{
 A named vector of integers, giving the tree numbers and the
@@ -21,8 +23,14 @@ A named vector of integers, giving the tree numbers and the
 \description{
 Returns the tree number of one or more glottolog families.
 }
-\details{
-By default, returns metadata from the newest version of glottolog. Obtain
-metadata for older versions by setting the parameter
-\code{glottolog_version}.
+\examples{
+which_tree("Caddoan")
+which_tree(c("Caddoan", "Tangkic"), glottolog_version = "4.3")
+# If some family names are unrecognized, a warning is issued
+which_tree(c("Caddoan", "Zzz"), glottolog_version = "4.4")
+\dontrun{
+# If no family names are recognized, an error results
+which_tree()
+which_tree("Zzz")
+}
 }

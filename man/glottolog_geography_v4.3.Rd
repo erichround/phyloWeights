@@ -23,7 +23,6 @@ A dataframe:
 glottolog_geography_v4.3
 }
 \description{
-A dataset of geographical information about the
-languages in glottolog.
+A dataset of geographical information about the languages in glottolog.
 }
 \keyword{datasets}

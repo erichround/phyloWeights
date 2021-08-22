@@ -80,19 +80,22 @@ get_glottolog_trees = function(
 #' @param phy A multiphylo object containing the trees to be combined.
 #' @return A phylo object, a single tree.
 #' @examples 
+#' 
 #' library(ape)
+#' 
 #' arnhem_hypothesis <- 
 #'   c("Gunwinyguan", "Mangarrayi-Maran", "Maningrida",
 #'     "Kungarakany", "Gaagudju")
 #' trees <- get_glottolog_trees(arnhem_hypothesis)
-#' simple_rake <- bind_as_rake(trees)
-#' rake_in_rake <- bind_as_rake(c(bind_as_rake(trees[1:3]), trees[4:5]))
+#' simple_rake <- assemble_rake(trees)
+#' rake_in_rake <- assemble_rake(c(assemble_rake(trees[1:3]), trees[4:5]))
 #' plot(simple_rake)
 #' plot(rake_in_rake)
+#' 
 #' # If `phy` contains only one tree, a warning is issued.
-#' mono_rake <- bind_as_rake(trees[3])
+#' mono_rake <- assemble_rake(trees[3])
 #' plot(mono_rake)
-bind_as_rake = function(phy) {
+assemble_rake = function(phy) {
   
   if (class(phy) != "multiPhylo") {
     cp <- class(phy)
@@ -190,10 +193,13 @@ bind_as_rake = function(phy) {
 #' # Supertree whose first order branches are the glottolog macroareas
 #' supertree <- assemble_supertree()
 #' supertree_v.4.3 <- assemble_supertree(glottolog_version = "4.3")
+#' 
 #' # Supertree whose first order branches are glottolog families
 #' supertree <- assemble_supertree(macro_groups = NULL)
+#' 
 #' # Supertree whose first order branches are the African & Eurasian macroareas
 #' supertree <- assemble_supertree(macro_groups = list("Africa", "Eurasia"))
+#' 
 #' # Supertree whose first order branches are the glottolog macroareas, but
 #' # with the Americas combined:
 #' supertree <- assemble_supertree(
@@ -222,7 +228,7 @@ assemble_supertree = function(
   if (missing(macro_groups)) { 
     # No argument given; use the available macro groups without
     # further grouping
-    macro_groups <- list(available_macros) 
+    macro_groups <- as.list(available_macros) 
   }
   if (!is.null(macro_groups)){
     if (!is.list(macro_groups)) {
@@ -242,8 +248,7 @@ assemble_supertree = function(
   }
 
   # Get the predominant macro_area for each tree
-  main_macro <- 
-    get_glottolog_families(glottolog_version)$main_macroarea
+  main_macro <- get_glottolog_families(glottolog_version)$main_macroarea
   
   # Group family trees by macroarea
   if (is.null(macro_groups)) {
@@ -255,7 +260,7 @@ assemble_supertree = function(
       lapply(macro_groups, function(m) {
         tree_set <- which(main_macro %in% m)
         macro_tree <- 
-          suppressWarnings(bind_as_rake(phy[tree_set]))
+          suppressWarnings(assemble_rake(phy[tree_set]))
         macro_label <- str_c(.name_to_label(m), collapse = "-")
         macro_tree$node.label[1] <- macro_label
         macro_tree
@@ -264,8 +269,7 @@ assemble_supertree = function(
   }
   
   # Group globally
-  super_phy <- 
-    suppressWarnings(bind_as_rake(macro_phys))
+  super_phy <- suppressWarnings(assemble_rake(macro_phys))
   super_phy$node.label[1] <- "World"
   super_phy$edge.length <- rep(1, Nedge(super_phy))
   
@@ -283,12 +287,59 @@ assemble_supertree = function(
 #' @examples 
 #' 
 #' library(ape)
+#' 
 #' tree <- abridge_labels(get_glottolog_trees("Tangkic"))
 #' plot(tree)
 #' nodelabels(tree$node.label)
+#' 
 #' tree2 <- select_tip(tree, c("lard1243", "kang1283", "kaya1319"))
 #' plot(tree2)
 #' nodelabels(tree2$node.label)
+#' 
+#' ## How to remove specific tips, keeping all others
+#' 
+#' all_tips <- tree$tip.label
+#' all_tips
+#' unwanted_tips <- "nyan1300"
+#' selected_tips <- all_tips[!(all_tips %in% unwanted_tips)]
+#' selected_tips
+#' tree3 <- select_tip(tree, selected_tips)
+#' plot(tree3)
+#' nodelabels(tree3$node.label)
+#' 
+#' unwanted_tips <- c("nyan1300", "kang1283")
+#' selected_tips <- all_tips[!(all_tips %in% unwanted_tips)]
+#' selected_tips
+#' tree4 <- select_tip(tree, selected_tips)
+#' plot(tree4)
+#' nodelabels(tree4$node.label)
+#' 
+#' # By convention, when all tips below a node are removed, the node is removed.
+#' # Here we remove nyan1300 and kaya1319. Node kaya1318 is removed too:
+#' unwanted_tips <- c("nyan1300", "kaya1319")
+#' selected_tips <- all_tips[!(all_tips %in% unwanted_tips)] 
+#' tree5 <- select_tip(tree, selected_tips)
+#' plot(tree5)
+#' nodelabels(tree5$node.label)
+#' 
+#' ## How to remove sister tips, but keep the node above them as a tip
+#' 
+#' # step 1 - clone the node above as a new tip
+#' tree5a <- clone_node(tree, "kaya1318")
+#' plot(tree5a)
+#' nodelabels(tree5a$node.label)
+#' 
+#' # step 2 - remove the sisters
+#' all_tips <- tree5a$tip.label 
+#' unwanted_tips <- c("nyan1300", "kaya1319")
+#' tree5b <- select_tip(tree5a, all_tips[!(all_tips %in% unwanted_tips)])
+#' plot(tree5b)
+#' nodelabels(tree5b$node.label)
+#' 
+#' # step 3 - collapse the node above (but retain its clone, which is a tip)
+#' tree5c <- collapse_node(tree5b, "kaya1318")
+#' plot(tree5c)
+#' nodelabels(tree5c$node.label)
 select_tip = function(phy, label) {
   
   # Check phy
@@ -323,6 +374,26 @@ select_tip = function(phy, label) {
 #' @param phy A phylo object. The tree to manipulate.
 #' @param label A character vector containing node labels.
 #' @return A phylo object containing the modified tree.
+#' @examples 
+#' 
+#' library(ape)
+#' 
+#' tree <- 
+#'   set_branch_lengths_exp(abridge_labels(get_glottolog_trees("Tangkic")))
+#' plot(tree)
+#' nodelabels(tree$node.label)
+#' tree2 <- clone_node(tree, "sout2758")
+#' plot(tree2)
+#' nodelabels(tree2$node.label)
+#' 
+#' tree3 <- clone_node(tree, c("sout2758", "gang1267", "kaya1318"))
+#' plot(tree3)
+#' nodelabels(tree3$node.label)
+#' 
+#' \dontrun{
+#' # Returns error if any element of `label` is not in `phy`
+#' tree4 <-  clone_node(tree, c("sout2758", "xxxx1234"))
+#' }
 clone_node = function(phy, label) {
   
   # Check phy
@@ -446,6 +517,45 @@ clone_node = function(phy, label) {
 #' @param subgroup A logical. Whether to create a subgroup containing the new
 #'   clones and their original.
 #' @return A phylo object containing the modified tree.
+#' @examples 
+#' 
+#' library(ape)
+#' 
+#' tree <- 
+#'   set_branch_lengths_exp(abridge_labels(get_glottolog_trees("Tangkic")))
+#' plot(tree)
+#' nodelabels(tree$node.label)
+#' tree2 <- clone_tip(tree, "nyan1300")
+#' plot(tree2)
+#' nodelabels(tree2$node.label)
+#' 
+#' tree3 <- clone_tip(tree, "nyan1300", subgroup = TRUE)
+#' plot(tree3)
+#' nodelabels(tree3$node.label)
+#' # Add suffixes to labels, to keep all labels distinct
+#' tree3a <- apply_duplicate_suffixes(tree3)
+#' plot(tree3a)
+#' nodelabels(tree3a$node.label)
+#' 
+#' tree4 <- clone_tip(tree, "lard1243", n = 3)
+#' plot(tree4)
+#' nodelabels(tree4$node.label)
+#' 
+#' tree5 <- clone_tip(tree, "lard1243", n = 3, subgroup = TRUE)
+#' plot(tree5)
+#' nodelabels(tree5$node.label)
+#' 
+#' tree6 <- clone_tip(tree, c("lard1243", "nyan1300"), n = 2, subgroup = TRUE)
+#' plot(tree6)
+#' nodelabels(tree6$node.label)
+#' tree6a <- apply_duplicate_suffixes(tree6)
+#' plot(tree6a)
+#' nodelabels(tree6a$node.label)
+#' 
+#' \dontrun{
+#' # Returns error if any element of `label` is not in `phy`
+#' tree7 <-  clone_tip(tree, c("lard1243", "xxxx1234"))
+#' }
 clone_tip = function(
   phy, 
   label, 
@@ -480,7 +590,9 @@ clone_tip = function(
                "You supplied one or more labels that match ",
                "more than one tip: ",
                str_c(head(dup_tip_labels, 4), collapse = ","),
-               ifelse(length(dup_tip_labels) > 4, "..", ""), "."
+               ifelse(length(dup_tip_labels) > 4, "..", ""), ".\n",
+               "Use `apply_duplicate_suffixes()` to add suffixes ",
+               "to labels, to ensure that none are duplicates."
                ))
   }
   
@@ -545,7 +657,8 @@ clone_tip = function(
   phy$node.label[phy$node.label == "##NOLABEL##"] <- ""
   phy$tip.label[phy$tip.label == "##NOLABEL##"] <- ""
   
-  phy
+  # Place clones adjacent to one another
+  .group_cloned_sisters(phy)
 }
 
 
@@ -554,6 +667,16 @@ clone_tip = function(
 #' @param phy A phylo object. The tree to manipulate.
 #' @param label A character vector containing node labels.
 #' @return A phylo object containing the modified tree.
+#' @examples 
+#' 
+#' library(ape)
+#' tree <- 
+#'   set_branch_lengths_exp(abridge_labels(get_glottolog_trees("Tangkic")))
+#' plot(tree)
+#' nodelabels(tree$node.label)
+#' tree2 <- collapse_node(tree, "gang1267")
+#' plot(tree2)
+#' nodelabels(tree2$node.label)
 collapse_node = function(phy, label) {
   
   # Check phy
@@ -620,5 +743,55 @@ collapse_node = function(phy, label) {
     str_replace_all("〔", "\\[") %>%
     str_replace_all("〕", "\\]")
   
+  phy
+}
+
+
+#' Group cloned sisters in the tree ordering
+#'
+#' In Glottolog trees, nodes and tips are ordered by their glottocode.
+#' clone_tip() places tips either in the right order or too early, as the first
+#' sibling. This function groups sisters by moving early ones to a position
+#' adjacent to their last-ordered sibling(s).
+#'
+#' @param phy A phylo object.
+#' @return A phylo object, in which the edge orders potentially are changed.
+#' @noRd
+.group_cloned_sisters = function(phy) {
+  
+  # helper function
+  move_row_fwd <- function(df, from, to) {
+    slice(df, c((1:to)[-from], from, (to:nrow(df))[-1]))
+  }
+  
+  labels <- str_c(phy$tip.label, phy$edge.label)
+  edges <- phy$edge
+  df <- data.frame(orig_row = 1:nrow(edges),
+                   parent = edges[, 1],
+                   child_label = labels[edges[, 2]])
+  
+  # Cycle through parents and the labels of their children
+  for (p in unique(df$parent)) {
+    clabels <- filter(df, parent == p, !is.na(child_label))$child_label
+    for (l in unique(clabels)) {
+      lp_row <- which(df$parent == p & df$child_label == l)
+      n_lp_row = length(lp_row)
+      # Skip ahead if there's only one match to this parent & label
+      if (n_lp_row == 1) next
+      first_lp_row <- lp_row[1]
+      last_lp_row <- lp_row[n_lp_row]
+      # Skip ahead if all matches are in adjacent rows
+      if (last_lp_row == (first_lp_row + n_lp_row - 1)) next
+      # At least one not adjacent, so cycle through, moving each to last
+      # This is brute-force but it works
+      for (i in (n_lp_row - 1):1) {
+        df <- df %>% move_row_fwd(from = lp_row[i], to = last_lp_row)
+      }
+    }
+  }
+  
+  # Change order of edges, leaving the numbering of nodes and tips unchanged
+  phy$edge <- phy$edge[df$orig_row, ]
+  phy$edge.length <- phy$edge.length[df$orig_row]
   phy
 }

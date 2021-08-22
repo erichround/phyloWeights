@@ -13,5 +13,30 @@ ACL(phy)
 A vector of weights.
 }
 \description{
-Calculates phylogenetic weights (a.k.a. phylogenetic means) according to the classic method of Altschul, Carroll & Lipman DJ (1987).
+Calculates phylogenetic weights (a.k.a. phylogenetic means) according to the
+classic method of Altschul, Carroll & Lipman (1987).
+}
+\examples{
+
+library(ape)
+
+# Three trees, representing three genealogical hypotheses, that relate
+# languages A,B,C,D:
+tree1 <- read.tree(text = "(((A:1,B:1,C:1):1,D:2):0.3);")
+plot(tree1)
+tree2 <- read.tree(text = "(((A:0.2,B:0.2,C:0.2):1.8,D:2):0.3);")
+plot(tree2)
+tree3 <- read.tree(text = "(((A:1.8,B:1.8,C:1.8):0.2,D:2):0.3);")
+plot(tree2)
+# The ACL weights of each language in each tree:
+ACL(tree1)
+ACL(tree2)
+ACL(tree3)
+
+tree4 <- abridge_labels(get_glottolog_trees("Surmic"))
+plot(tree4)
+tree5 <- ultrametricize(set_branch_lengths_exp(tree4))
+plot(tree5)
+ACL(tree4)
+ACL(tree5)
 }

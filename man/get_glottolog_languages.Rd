@@ -2,20 +2,24 @@
 % Please edit documentation in R/metadata.R
 \name{get_glottolog_languages}
 \alias{get_glottolog_languages}
-\title{A simple glottolog language metadata table}
+\title{Simple language metadata}
 \usage{
-get_glottolog_languages(glottolog_version = get_newest_version())
+get_glottolog_languages(glottolog_version)
 }
 \arguments{
-\item{glottolog_version}{A character string. Which glottolog version to use.
-Currently, available options are \code{'4.3'} and \code{'4.4'}.}
+\item{glottolog_version}{A character string, specifying which glottolog
+version to use. Currently available options are \code{'4.3'} and
+\code{'4.4'}. If no value is specified then the newest available version is
+used.}
 }
 \description{
-Returns a dataframe of glottolog metadata with columns: \code{glottocode},
-\code{isocode}, \code{name}, \code{name_in_tree}, \code{position},
-\code{tree} and \code{tree_name}.
+Returns a dataframe of metadata on glottolog's languages.
 }
 \details{
-By default, returns metadata from the newest version of glottolog. Obtain
-metadata for older versions by setting the parameter \code{glottolog_version}.
+Returned columns are: \code{glottocode}, \code{isocodes}, \code{name},
+\code{name_in_tree}, \code{position}, \code{tree} and \code{tree_name}.
+}
+\examples{
+head(get_glottolog_languages())
+head(get_glottolog_languages(glottolog_version = "4.3"))
 }

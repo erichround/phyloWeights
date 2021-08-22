@@ -19,4 +19,16 @@ From a character vector, extracts the first glottocode from each element.
 Glottocodes comprise four lowercase letters (or b10b or 3adt) followed by
 four numbers, and are only identified if they are initial in the string or
 are preceded by [.
+
+Also recognizes and retains duplicate suffixes, i.e., a hyphen followed by
+one or more numerals at the end of the string (see
+\link{apply_duplicate_suffixes}).
+}
+\examples{
+
+extract_glottocode("DongoKresh[dong1296]-l-")
+extract_glottocode(c("DongoKresh[dong1296]-l-", "Goro-Golo[orlo1238]"))
+
+# Duplicate suffixes are recognised and retained
+extract_glottocode(c("Goro-Golo[orlo1238]-1", "Goro-Golo[orlo1238]-2"))
 }

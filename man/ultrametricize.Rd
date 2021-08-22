@@ -20,3 +20,13 @@ most-distance tip(s).
 \details{
 Identical to \code{\link{ultrametricise}}.
 }
+\examples{
+
+library(ape)
+tree <- set_branch_lengths_exp(abridge_labels(get_glottolog_trees("Siouan")))
+plot(tree)
+nodelabels(tree$node.label)
+tree2 <- ultrametricize(tree)
+plot(tree2)
+nodelabels(tree2$node.label)
+}

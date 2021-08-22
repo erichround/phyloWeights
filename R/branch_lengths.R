@@ -8,6 +8,21 @@
 #' @param phy A phlyo object, the tree to manipulate.
 #' @param branch_length A numeric stating the branch length.
 #' @return A phlyo object, the manipulated tree.
+#' @examples 
+#' 
+#' library(ape)
+#' arnhem_hypothesis <- 
+#'   c("Gunwinyguan", "Mangarrayi-Maran", "Maningrida",
+#'     "Kungarakany", "Gaagudju")
+#' tree <- assemble_rake(abridge_labels(get_glottolog_trees(arnhem_hypothesis)))
+#' plot(tree)
+#' nodelabels(tree$node.label)
+#' # tree now contains five language families. All branch lengths are 1.
+#' # Set the deepest branch lengths to 5, implying a great genealogical
+#' # distance between the families within the tree.
+#' tree2 <- set_deepest_branch_lengths(tree, branch_length = 5)
+#' plot(tree2)
+#' nodelabels(tree2$node.label)
 set_deepest_branch_lengths = function(
   phy, 
   branch_length = 1
@@ -48,6 +63,16 @@ set_deepest_branch_lengths = function(
 #' 
 #' @param phy A phlyo object, the tree to manipulate.
 #' @return A phlyo object, the manipulated tree.
+#' @examples 
+#' 
+#' library(ape)
+#' tree <- abridge_labels(get_glottolog_trees("Tangkic"))
+#' tree2 <- clone_tip(tree, "nyan1300", n = 2, subgroup = TRUE)
+#' plot(tree2)
+#' nodelabels(tree2$node.label)
+#' tree3 <- set_branch_lengths_1(tree2)
+#' plot(tree3)
+#' nodelabels(tree3$node.label)
 set_branch_lengths_1 = function(phy) {
   
   # Check phy
@@ -69,6 +94,15 @@ set_branch_lengths_1 = function(phy) {
 #'
 #' @param phy A phlyo object, the tree to manipulate.
 #' @return A phlyo object, the manipulated tree.
+#' @examples 
+#' 
+#' library(ape)
+#' tree <- abridge_labels(get_glottolog_trees("Siouan"))
+#' plot(tree)
+#' nodelabels(tree$node.label)
+#' tree2 <- set_branch_lengths_exp(tree)
+#' plot(tree2)
+#' nodelabels(tree2$node.label)
 set_branch_lengths_exp = function(phy) {
   
   # Check phy
@@ -100,6 +134,15 @@ set_branch_lengths_exp = function(phy) {
 #'
 #' @param phy A phlyo object, the tree to manipulate.
 #' @return A phlyo object, the manipulated tree.
+#' @examples 
+#' 
+#' library(ape)
+#' tree <- set_branch_lengths_exp(abridge_labels(get_glottolog_trees("Siouan")))
+#' plot(tree)
+#' nodelabels(tree$node.label)
+#' tree2 <- ultrametricize(tree)
+#' plot(tree2)
+#' nodelabels(tree2$node.label)
 ultrametricize = function(phy) {
   
   # Check phy
@@ -123,18 +166,3 @@ ultrametricize = function(phy) {
   
   phy
 }
-
-
-#' Ultrametricize tree by stretching final edges
-#'
-#' Alters branches ending in a tip in such a way that all tips are equidistant
-#' from the root. Does this by lengthening branches above all but the existing,
-#' most-distance tip(s).
-#' 
-#' Identical to \code{\link{ultrametricize}}.
-#' 
-#' @param phy A phlyo object, the tree to manipulate.
-#' @return A phlyo object, the manipulated tree.
-#' @param phy A phylo object
-#' @return A phylo object
-ultrametricise = ultrametricize

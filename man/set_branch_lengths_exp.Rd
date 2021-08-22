@@ -16,3 +16,13 @@ A phlyo object, the manipulated tree.
 Sets the deepest branches to length 1/2, the next deepest to 1/4, the next to
 1/8, etc.
 }
+\examples{
+
+library(ape)
+tree <- abridge_labels(get_glottolog_trees("Siouan"))
+plot(tree)
+nodelabels(tree$node.label)
+tree2 <- set_branch_lengths_exp(tree)
+plot(tree2)
+nodelabels(tree2$node.label)
+}

@@ -13,8 +13,34 @@ BM(phy)
 A vector of weights
 }
 \description{
-Calculates phylogenetic weights according the to BranchManager method of Stone & Sidow (2007).
+Calculates phylogenetic weights according the to BranchManager method of
+Stone & Sidow (2007).
 }
 \details{
+Adapted from original R code by Eric A. Stone, published as supplementary
+material to Stone & Sidow (2007).
+}
+\examples{
 
+library(ape)
+
+# Three trees, representing three genealogical hypotheses, that relate
+# languages A,B,C,D:
+tree1 <- read.tree(text = "(((A:1,B:1,C:1):1,D:2):0.3);")
+plot(tree1)
+tree2 <- read.tree(text = "(((A:0.2,B:0.2,C:0.2):1.8,D:2):0.3);")
+plot(tree2)
+tree3 <- read.tree(text = "(((A:1.8,B:1.8,C:1.8):0.2,D:2):0.3);")
+plot(tree2)
+# The ACL weights of each language in each tree:
+BM(tree1)
+BM(tree2)
+BM(tree3)
+
+tree4 <- abridge_labels(get_glottolog_trees("Surmic"))
+plot(tree4)
+tree5 <- ultrametricize(set_branch_lengths_exp(tree4))
+plot(tree5)
+BM(tree4)
+BM(tree5)
 }

@@ -9,7 +9,7 @@ clone_node(phy, label)
 \arguments{
 \item{phy}{A phylo object. The tree to manipulate.}
 
-\item{labels}{A character vector containing node labels.}
+\item{label}{A character vector containing node labels.}
 }
 \value{
 A phylo object containing the modified tree.
@@ -18,6 +18,27 @@ A phylo object containing the modified tree.
 Clones internal nodes in a tree as self-daughter tips.
 }
 \details{
-A node is cloned only once, even if its label appears more than once in
-\code{label}.
+The length of any new branch, between node n and its new clone, is set equal
+to the longest of the original branches directly below node n.
+}
+\examples{
+
+library(ape)
+
+tree <- 
+  set_branch_lengths_exp(abridge_labels(get_glottolog_trees("Tangkic")))
+plot(tree)
+nodelabels(tree$node.label)
+tree2 <- clone_node(tree, "sout2758")
+plot(tree2)
+nodelabels(tree2$node.label)
+
+tree3 <- clone_node(tree, c("sout2758", "gang1267", "kaya1318"))
+plot(tree3)
+nodelabels(tree3$node.label)
+
+\dontrun{
+# Returns error if any element of `label` is not in `phy`
+tree4 <-  clone_node(tree, c("sout2758", "xxxx1234"))
+}
 }

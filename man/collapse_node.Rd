@@ -9,12 +9,22 @@ collapse_node(phy, label)
 \arguments{
 \item{phy}{A phylo object. The tree to manipulate.}
 
-\item{labels}{A character vector containing node labels.}
+\item{label}{A character vector containing node labels.}
 }
 \value{
 A phylo object containing the modified tree.
 }
 \description{
-Note this will also multichotomise all nodes with a 0-length branch above
-them.
+Collapse a node rootwards
+}
+\examples{
+
+library(ape)
+tree <- 
+  set_branch_lengths_exp(abridge_labels(get_glottolog_trees("Tangkic")))
+plot(tree)
+nodelabels(tree$node.label)
+tree2 <- collapse_node(tree, "gang1267")
+plot(tree2)
+nodelabels(tree2$node.label)
 }

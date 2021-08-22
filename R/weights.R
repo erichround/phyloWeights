@@ -4,7 +4,7 @@
 #'
 #' Calculates phylogenetic weights according to the ACL method (see \link{ACL})
 #' and BranchManager method (see \link{BM}), for one or more reference trees,
-#' and applies the resulting sets of weights to one ore more numerical variables
+#' and applies the resulting sets of weights to one or more numerical variables
 #' which characterize the languages in the trees, resulting in
 #' phylogenetically-sensitive (i.e., phylogenetically-weighted) averages. If the
 #' data is in the form of binary \{0,1\} values, this is equivalent to a
@@ -31,6 +31,29 @@
 #'   and at least one column of numerical data.
 #' @return A list, containing phy, data, and dataframes: ACL_weights,
 #'   BM_weights, ACL_averages, BM_averages
+#' @examples 
+#' 
+#' library(ape)
+#' 
+#' # A dataframe of language data, with columns: language, is_SOV, n_consonants
+#' dat <- data.frame(
+#'   language = c("A", "B", "C", "D"), 
+#'   is_SOV = c(1, 1, 1, 0),
+#'   n_consonants = c(18, 20, 22, 40))
+#' # Three trees, representing three genealogical hypotheses, that relate
+#' # the same languages A,B,C,D:
+#' trees <- c(
+#'   read.tree(text = "(((A:1,B:1,C:1):1,D:2):0.3);"),
+#'   read.tree(text = "(((A:0.2,B:0.2,C:0.2):1.8,D:2):0.3);"),
+#'   read.tree(text = "(((A:1.8,B:1.8,C:1.8):0.2,D:2):0.3);"))
+#' p_ave <- phylo_average(phy = trees, data = dat)
+#' # Phylogenetic weights, calculated from the trees:
+#' p_ave$ACL_weights
+#' p_ave$BM_weights
+#' # Phylogenetically-weighted averages, or, for binary data, phylogenetically-
+#' # weighted proportions
+#' p_ave$ACL_averages
+#' p_ave$BM_averages
 phylo_average = function(
   phy = NULL,
   data = NULL
@@ -60,8 +83,8 @@ phylo_average = function(
     } else {
       cl <- class(data$language) 
       if (!is.character(data$language)) {
-        stop(str_c("Column `language` in `data` must contain character strings.\n",
-                   "You supplied a column of class ", cl, "."))
+        stop(str_c("Column `language` in `data` must contain character ",
+                   "strings.\n You supplied a column of class ", cl, "."))
       }
     }
     is_dupl <- duplicated(data$language) 
@@ -91,6 +114,8 @@ phylo_average = function(
             ifelse(sum(is_extra_col) > 4, "..", ""), ".")
     )
   }
+  data_numeric <- data %>% select(which(is_num_col))
+  data_nonnumeric <- data %>% select(which(!is_num_col))
   
   # Convert phy to multiPhlyo
   is_phylo <- class(phy) == "phylo"
@@ -125,7 +150,7 @@ phylo_average = function(
       )
     }
     extra <- setdiff(phy$tip.label, data$language)
-    if (length(is_extra) > 0) {
+    if (length(extra) > 0) {
       stop(
         str_c("In ", each_phy, ", all tips must be represented in ",
               "the `language` column of `data`.\n",
@@ -146,23 +171,20 @@ phylo_average = function(
     }
   }
   
-  
   # Get weights
   ACL_weights <- BM_weights <- data %>% select(language)
   for (i in 1:length(phy)) {
-    ACL_i <- data.frame(x = ACL(phy[[i]]), 
-                        .tip.label = phy[[i]]$tip.label)
-    BM_i  <- data.frame(x = BM(phy[[i]]),
-                        .tip.label = phy[[i]]$tip.label)
+    ACL_i <- data.frame(x = ACL(phy[[i]]), language = phy[[i]]$tip.label)
+    BM_i  <- data.frame(x = BM(phy[[i]]),  language = phy[[i]]$tip.label)
     colnames(ACL_i)[1] <- colnames(BM_i)[1] <-  str_c("tree", i)
-    ACL_weights <- left_join(ACL_weights, ACL_i, by = ".tip.label")
-    BM_weights  <- left_join(BM_weights,  BM_i, by = ".tip.label")
+    ACL_weights <- left_join(ACL_weights, ACL_i, by = "language")
+    BM_weights  <- left_join(BM_weights,  BM_i,  by = "language")
   }
   
   # Calculate averages using matrix multiplication
-  data_mat <- t(as.matrix(data[, is_num_col]))
-  ACL_mat <- as.matrix(ACL_weights %>% select(-.tip.label))
-  BM_mat  <- as.matrix(BM_weights  %>% select(-.tip.label))
+  data_mat <- t(as.matrix(data_numeric))
+  ACL_mat <- as.matrix(ACL_weights %>% select(-language))
+  BM_mat  <- as.matrix(BM_weights  %>% select(-language))
   ACL_ave_mat <- t(data_mat %*% ACL_mat)
   BM_ave_mat  <- t(data_mat %*% BM_mat)
   
@@ -175,27 +197,17 @@ phylo_average = function(
     as.data.frame(BM_ave_mat) %>%
     mutate(tree = str_c("tree", 1:n_tree)) %>%
     select(tree, everything())
-  colnames(ACL_averages) <-
-    colnames(BM_averages) <-
-    c("tree", colnames(data)[is_num_col])
-  rownames(ACL_averages) <- 
-    rownames(BM_averages) <- 
-    rownames(ACL_weights) <-
-    rownames(BM_weights) <-
-    NULL
-  ACL_weights <- 
-    left_join(data[, !is_num_col], 
-              ACL_weights, by = ".tip.label") %>%
-    select(-.tip.label)
-  BM_weights <- 
-    left_join(data[, !is_num_col], 
-              BM_weights, by = ".tip.label") %>%
-    select(-.tip.label)
+  colnames(ACL_averages) <- colnames(BM_averages) <-
+    c("tree", colnames(data_numeric))
+  rownames(ACL_averages) <- rownames(BM_averages) <- 
+    rownames(ACL_weights) <- rownames(BM_weights) <- NULL
+  ACL_weights <- left_join(data_nonnumeric, ACL_weights, by = "language") 
+  BM_weights  <- left_join(data_nonnumeric, BM_weights,  by = "language")
   
   # Return results
   list(
     phy  = phy_original,
-    data = data %>% select(-.tip.label),
+    data = data,
     ACL_weights  = ACL_weights,
     BM_weights   = BM_weights,
     ACL_averages = ACL_averages,
@@ -211,6 +223,29 @@ phylo_average = function(
 #'
 #' @param phy A phylo object.
 #' @return A vector of weights.
+#' @examples 
+#' 
+#' library(ape)
+#' 
+#' # Three trees, representing three genealogical hypotheses, that relate
+#' # languages A,B,C,D:
+#' tree1 <- read.tree(text = "(((A:1,B:1,C:1):1,D:2):0.3);")
+#' plot(tree1)
+#' tree2 <- read.tree(text = "(((A:0.2,B:0.2,C:0.2):1.8,D:2):0.3);")
+#' plot(tree2)
+#' tree3 <- read.tree(text = "(((A:1.8,B:1.8,C:1.8):0.2,D:2):0.3);")
+#' plot(tree2)
+#' # The ACL weights of each language in each tree:
+#' ACL(tree1)
+#' ACL(tree2)
+#' ACL(tree3)
+#' 
+#' tree4 <- abridge_labels(get_glottolog_trees("Surmic"))
+#' plot(tree4)
+#' tree5 <- ultrametricize(set_branch_lengths_exp(tree4))
+#' plot(tree5)
+#' ACL(tree4)
+#' ACL(tree5)
 ACL = function(phy) {
   
   # Check phy
@@ -230,11 +265,34 @@ ACL = function(phy) {
 #' Calculates phylogenetic weights according the to BranchManager method of
 #' Stone & Sidow (2007).
 #'
-#' Adapted from original R code by Eric A. Stone, in supplementary material to
-#' Stone & Sidow (2007).
+#' Adapted from original R code by Eric A. Stone, published as supplementary
+#' material to Stone & Sidow (2007).
 #'
 #' @param phy A phylo object
 #' @return A vector of weights
+#' @examples 
+#' 
+#' library(ape)
+#' 
+#' # Three trees, representing three genealogical hypotheses, that relate
+#' # languages A,B,C,D:
+#' tree1 <- read.tree(text = "(((A:1,B:1,C:1):1,D:2):0.3);")
+#' plot(tree1)
+#' tree2 <- read.tree(text = "(((A:0.2,B:0.2,C:0.2):1.8,D:2):0.3);")
+#' plot(tree2)
+#' tree3 <- read.tree(text = "(((A:1.8,B:1.8,C:1.8):0.2,D:2):0.3);")
+#' plot(tree2)
+#' # The ACL weights of each language in each tree:
+#' BM(tree1)
+#' BM(tree2)
+#' BM(tree3)
+#' 
+#' tree4 <- abridge_labels(get_glottolog_trees("Surmic"))
+#' plot(tree4)
+#' tree5 <- ultrametricize(set_branch_lengths_exp(tree4))
+#' plot(tree5)
+#' BM(tree4)
+#' BM(tree5)
 BM <- function(phy) {
   
   # Check phy
