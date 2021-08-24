@@ -295,51 +295,6 @@ assemble_supertree = function(
 #' tree2 <- select_tip(tree, c("lard1243", "kang1283", "kaya1319"))
 #' plot(tree2)
 #' nodelabels(tree2$node.label)
-#' 
-#' ## How to remove specific tips, keeping all others
-#' 
-#' all_tips <- tree$tip.label
-#' all_tips
-#' unwanted_tips <- "nyan1300"
-#' selected_tips <- all_tips[!(all_tips %in% unwanted_tips)]
-#' selected_tips
-#' tree3 <- select_tip(tree, selected_tips)
-#' plot(tree3)
-#' nodelabels(tree3$node.label)
-#' 
-#' unwanted_tips <- c("nyan1300", "kang1283")
-#' selected_tips <- all_tips[!(all_tips %in% unwanted_tips)]
-#' selected_tips
-#' tree4 <- select_tip(tree, selected_tips)
-#' plot(tree4)
-#' nodelabels(tree4$node.label)
-#' 
-#' # By convention, when all tips below a node are removed, the node is removed.
-#' # Here we remove nyan1300 and kaya1319. Node kaya1318 is removed too:
-#' unwanted_tips <- c("nyan1300", "kaya1319")
-#' selected_tips <- all_tips[!(all_tips %in% unwanted_tips)] 
-#' tree5 <- select_tip(tree, selected_tips)
-#' plot(tree5)
-#' nodelabels(tree5$node.label)
-#' 
-#' ## How to remove sister tips, but keep the node above them as a tip
-#' 
-#' # step 1 - clone the node above as a new tip
-#' tree5a <- clone_node(tree, "kaya1318")
-#' plot(tree5a)
-#' nodelabels(tree5a$node.label)
-#' 
-#' # step 2 - remove the sisters
-#' all_tips <- tree5a$tip.label 
-#' unwanted_tips <- c("nyan1300", "kaya1319")
-#' tree5b <- select_tip(tree5a, all_tips[!(all_tips %in% unwanted_tips)])
-#' plot(tree5b)
-#' nodelabels(tree5b$node.label)
-#' 
-#' # step 3 - collapse the node above (but retain its clone, which is a tip)
-#' tree5c <- collapse_node(tree5b, "kaya1318")
-#' plot(tree5c)
-#' nodelabels(tree5c$node.label)
 select_tip = function(phy, label) {
   
   # Check phy
@@ -364,21 +319,201 @@ select_tip = function(phy, label) {
 }
 
 
-#' Clone named nodes to self-daughter tips
+#' Remove tips
 #'
-#' Clones internal nodes in a tree as self-daughter tips.
-#'
-#' The length of any new branch, between node n and its new clone, is set equal
-#' to the longest of the original branches directly below node n.
+#' From a tree, select which tips are to be removed.
 #'
 #' @param phy A phylo object. The tree to manipulate.
-#' @param label A character vector containing node labels.
+#' @param label A character vector containing tip labels.
 #' @return A phylo object containing the modified tree.
 #' @examples 
 #' 
 #' library(ape)
 #' 
-#' tree <- 
+#' tree <- abridge_labels(get_glottolog_trees("Tangkic"))
+#' plot(tree)
+#' nodelabels(tree$node.label)
+#' 
+#' tree2 <- remove_tip(tree, c("kang1283", "kaya1319"))
+#' plot(tree2)
+#' nodelabels(tree2$node.label)
+#' 
+#' ## How to remove all tips below a node, but keep the node as a tip
+#' 
+#' # By convention, when all tips below a node are removed, the node is removed.
+#' # Here we remove nyan1300 and kaya1319. Node kaya1318 is removed too:
+#' unwanted_tips <- c("nyan1300", "kaya1319")
+#' tree3 <- remove_tip(tree5a, label = unwanted_tips)
+#' plot(tree3)
+#' nodelabels(tree5$node.label)
+#' 
+#' # step 1 - add a new tip with the same name
+#' tree4a <- add_tip(tree, "kaya1318", parent_node = "sout2758")
+#' plot(tree4)
+#' nodelabels(tree5a$node.label)
+#' 
+#' # step 2 - remove the unwanted tips and the original node
+#' tree4b <- remove_tip(tree4a, label = unwanted_tips)
+#' plot(tree4b)
+#' nodelabels(tree4b$node.label)
+remove_tip = function(phy, label) {
+  
+  # Check phy
+  check <- .check_phy(phy)
+  if (!is.na(check$error_msg)) { stop(check$error_msg) }
+  # Note, if needed, this will add missing $node.label, $tip.label, $edge.length
+  phy <- check$phy
+
+  # Check labels
+  check_result <- .check_labels(phy, label, type = "tip")
+  if (!is.na(check_result$error_msg)) {
+    stop(check_result$error_msg)
+  } else if (!is.na(check_result$warning_msg)) {
+    warning(check_result$warning_msg)
+  }
+
+  # Drop tips
+  drop.tip(phy, label, collapse.singles = FALSE)
+}
+
+
+#' Add tips to a tree
+#'
+#' Add one or more tips below a parent node specified by its label.
+#'
+#' The length of the branches, between the added tips and their parent node
+#' is set equal to the longest of the original branches directly below node n.
+#'
+#' @param phy A phylo object. The tree to manipulate.
+#' @param label A character vector containing tip labels.
+#' @param parent_label A character string containing the label of the parent
+#'   node.
+#' @return A phylo object containing the modified tree.
+#' @examples 
+#' 
+#' library(ape)
+#' 
+#' tree <- abridge_labels(get_glottolog_trees("LeftMay"))
+#' tree <- ultrametricize(set_branch_lengths_exp(tree))
+#' plot(tree)
+#' nodelabels(tree$node.label)
+#' 
+#' # Attach one or more new tips to a tree:
+#' tree2 <- add_tip(tree, label = "rockypeak", parent_label = "iter1240")
+#' plot(tree2)
+#' nodelabels(tree2$node.label)
+#' tree3 <- add_tip(tree, c("bo", "kaumifi"),  parent_label = "bopa1235")
+#' plot(tree3)
+#' nodelabels(tree3$node.label)
+#' 
+#' # Move tips by using remove_tip() and add_tip():
+#' tree4 <- remove_tip(tree, "amap1240")
+#' tree4a <- add_tip(tree4, "amap1240", parent_label = "left1242")
+#' plot(tree4a)
+#' nodelabels(tree4a$node.label)
+add_tip = function(phy, label, parent_label) {
+  
+  # Check phy
+  check <- .check_phy(phy)
+  if (!is.na(check$error_msg)) { stop(check$error_msg) }
+  # Note, if needed, this will add missing $node.label, $tip.label, $edge.length
+  phy <- check$phy
+  
+  # Check labels
+  if (!is.character(label)) {
+    cl <- class(label)
+    return(list(
+      error_msg = str_c("`label` must be a character vector.\n",
+                        "You supplied an object of class ", cl, "."),
+      warning_msg = NA
+    ))
+  }
+  n_label <- length(label)
+  if (n_label == 0) {
+    stop(str_c("`label` should be length 1 or more.\n",
+               "You supplied a vector length 0."))
+  }
+  
+  # Check parent label
+  check_result <- .check_labels(phy, parent_label, type = "parent")
+  if (!is.na(check_result$error_msg)) {
+    stop(check_result$error_msg)
+  } else if (!is.na(check_result$warning_msg)) {
+    warning(check_result$warning_msg)
+  }
+  if (length(parent_label) != 1) {
+    stop(str_c("`parent_label` should be length 1.\n",
+               "You supplied a vector length ", length(parent_label, ".")))
+  }
+  n_tip <- Ntip(phy)
+  n_node <- Nnode(phy)
+  n_vertex <- n_tip + n_node
+  n_edge <- Nedge(phy)
+  parent_node <- n_tip + which(phy$node.label == parent_label)
+  if (length(parent_node) > 1) {
+    stop(str_c("`parent_label` should uniquely identify one node.\n",
+               "You provided the value `", parent_label, "`, which matches ",
+               length(parent_node), " nodes in `phy`.\n",
+               "Consider using apply_duplicate_suffixes() to make node ",
+               "labels unique before using add_tip()."))
+  }
+  
+  # Get new edge length
+  sibling_edges <- which(phy$edge[, 1] == parent_node)
+  new_edgelength <- max(phy$edge.length[sibling_edges])
+
+  # Note: TreeTools::AddTip doesn't suffice, because it scrambles node labels
+  # add introduces new tips in binary branches rather than multichotomies.
+  
+  # Edges which, in phy$edge, come before the inserted tips/edges do not move.
+  # Others get shunted later. Pendants are edges ending in tips.
+  e_moved <- (min(sibling_edges):n_edge)
+  p_unmoved <- which(phy$edge[-e_moved, 2] <= n_tip)
+  
+  # The highest-numbered tip on an unmoved pendant is the first tip to be
+  # shunted. All those before it are unmoved.
+  t_first_moved <- max(1, phy$edge[p_unmoved, 2])
+  t_moved <- t_first_moved:n_tip
+  v_moved <- t_first_moved:n_vertex
+  
+  # Remapping of node and tip indices
+  remap <- c((1:n_vertex)[-v_moved], (1:n_vertex)[v_moved] + n_label)
+  edge_remapped <- matrix(remap[phy$edge], ncol = 2)
+  
+  # New pieces, to insert between the moved and unmoved parts
+  t_new <- t_first_moved + 0:(n_label - 1)
+  edge_new <- matrix(c(rep(remap[parent_node], n_label), t_new), ncol = 2)
+  length_new <- rep(new_edgelength, n_label)
+
+  new_tree <- list(
+    edge = rbind(edge_remapped[-e_moved, ], edge_new, edge_remapped[e_moved, ]),
+    Nnode = phy$Nnode,
+    node.label = phy$node.label,
+    tip.label = c(phy$tip.label[-t_moved], label, phy$tip.label[t_moved]),
+    edge.length = 
+      c(phy$edge.length[-e_moved], length_new, phy$edge.length[e_moved])
+  )
+  class(new_tree) <- "phylo"
+
+  new_tree
+}
+
+
+#' Clone named nodes to self-daughter tips
+#' 
+#' Clones internal nodes in a tree as self-daughter tips.
+#' 
+#' The length of any new branch, between node n and its new clone, is set equal
+#' to the longest of the original branches directly below node n.
+#' 
+#' @param phy A phylo object. The tree to manipulate.
+#' @param label A character vector containing node labels.
+#' @return A phylo object containing the modified tree.
+#' @examples
+#' 
+#' library(ape)
+#' 
+#' tree <-
 #'   set_branch_lengths_exp(abridge_labels(get_glottolog_trees("Tangkic")))
 #' plot(tree)
 #' nodelabels(tree$node.label)
@@ -394,121 +529,121 @@ select_tip = function(phy, label) {
 #' # Returns error if any element of `label` is not in `phy`
 #' tree4 <-  clone_node(tree, c("sout2758", "xxxx1234"))
 #' }
-clone_node = function(phy, label) {
-  
-  # Check phy
-  check <- .check_phy(phy)
-  if (!is.na(check$error_msg)) { stop(check$error_msg) }
-  # Note, if needed, this will add missing $node.label, $tip.label, $edge.length
-  phy <- check$phy
-  phy$node.label[phy$node.label == ""] <- "##NOLABEL##"
-  phy$tip.label[phy$tip.label == ""] <- "##NOLABEL##"
-  
-  # Check labels
-  check_result <- .check_labels(phy, label, type = "node")
-  if (!is.na(check_result$error_msg)) {
-    stop(check_result$error_msg)
-  } else if (!is.na(check_result$warning_msg)) {
-    warning(check_result$warning_msg) 
-  }
-  
-  # Check for duplicate nodes that match label
-  l_nodes <- which(phy$node.label %in% label)
-  dup_l_nodes <- duplicated(phy$node.label[l_nodes])
-  dup_node_labels <- unique(phy$node.label[l_nodes[dup_l_nodes]])
-  if (any(dup_l_nodes)) {
-    stop(str_c("Cannot clone already-duplicated nodes: ",
-               "`label` must not contain names of node labels ",
-               "that occur more than once in `phy`.\n",
-               "You supplied one or more labels that match ",
-               "more than one node: ",
-               str_c(head(dup_node_labels, 4), collapse = ","),
-               ifelse(length(dup_node_labels) > 4, "..", ""), "."
-    ))
-  }
-  
-  label <- unique(label[label %in% phy$node.label])
-  n_new <- length(label)
-  
-  if (n_new == 0) { return(phy) }
-  
-  n_edge <- Nedge(phy)
-  n_tip <- Ntip(phy)
-  n_node <- Nnode(phy)
-  edges <- phy$edge
-  new_edge <- matrix(NA, ncol = 2, nrow = n_edge + n_new)
-  new_tip.label <- rep("", n_tip + n_new)
-  new_edge.length <- rep(NA, n_edge + n_new)
-  insert_e <- rep(NA, n_new)
-  insert_t <- rep(NA, n_new)
-  insert_e_length <- rep(NA, n_new)
-  offset_e <- rep(0, n_edge)
-  offset_t <- rep(0, n_tip)
-  nodes <- rep(NA, n_new)
-  
-  # Work out how many positions to offset the current
-  # edges and tips
-  for (i in 1:n_new) {
-    
-    nodes[i] <- which(phy$node.label == label[i])
-    u <- nodes[i] + Ntip(phy)
-    
-    u_edges <- which(edges[,1] == u)
-    insert_e_length[i] <- max(phy$edge.length[u_edges])
-    
-    # Find the first edge from u. This is the row, before 
-    # which to insert a new row in phy$edge etc.
-    insert_e[i] <- min(u_edges) - 1
-    # Update the offsets
-    inc <- c(rep(0, insert_e[i]), rep(1, n_edge - insert_e[i]))
-    offset_e <- offset_e + inc
-    
-    # Find previous tip in $edge. This is the tip number,
-    # before which to insert a new tip in $tip.label etc.
-    earlier_v <- edges[1:insert_e[i], 2]
-    earlier_tip <- earlier_v[earlier_v <= n_tip]
-    insert_t[i] <- max(c(0, earlier_tip))
-    # Update the offsets
-    inc <- c(rep(0, insert_t[i]), rep(1, n_tip - insert_t[i]))
-    offset_t <- offset_t + inc
-  }
-  
-  # What the old values in phy$edge map to:
-  remap <- c((1:n_tip) + offset_t, (1:n_node) + n_tip + n_new)
-  # Remap the old values to the right values and places:
-  new_edge[(1:n_edge) + offset_e, ] <- remap[edges]
-  new_edge.length[(1:n_edge) + offset_e] <- phy$edge.length
-  new_tip.label[(1:n_tip) + offset_t] <- phy$tip.label
-  
-  # The insertion positions are now empty:
-  empty_e <- sort(insert_e) + (1:n_new)
-  empty_t <- sort(insert_t) + (1:n_new)
-  # For empty edge rows, copy u from next row
-  new_edge[empty_e, ] <- c(new_edge[empty_e + 1, 1], empty_t)
-  new_edge.length[empty_e] <- insert_e_length
-  # For empty tip labels, use node labels in order
-  new_tip.label[empty_t] <- label[order(nodes)]
-  
-  new_tree <- list(
-    edge = new_edge,
-    Nnode = phy$Nnode,
-    node.label = phy$node.label,
-    tip.label = new_tip.label,
-    edge.length = new_edge.length
-  )
-  class(new_tree) <- "phylo"
-  
-  new_tree$node.label[phy$node.label == "##NOLABEL##"] <- ""
-  new_tree$tip.label[phy$tip.label == "##NOLABEL##"] <- ""
-  
-  new_tree
-}
+#' # clone_node = function(phy, label) 
+#   
+#   # Check phy
+#   check <- .check_phy(phy)
+#   if (!is.na(check$error_msg)) { stop(check$error_msg) }
+#   # Note, if needed, this will add missing $node.label, $tip.label, $edge.length
+#   phy <- check$phy
+#   phy$node.label[phy$node.label == ""] <- "##NOLABEL##"
+#   phy$tip.label[phy$tip.label == ""] <- "##NOLABEL##"
+#   
+#   # Check labels
+#   check_result <- .check_labels(phy, label, type = "node")
+#   if (!is.na(check_result$error_msg)) {
+#     stop(check_result$error_msg)
+#   } else if (!is.na(check_result$warning_msg)) {
+#     warning(check_result$warning_msg) 
+#   }
+#   
+#   # Check for duplicate nodes that match label
+#   l_nodes <- which(phy$node.label %in% label)
+#   dup_l_nodes <- duplicated(phy$node.label[l_nodes])
+#   dup_node_labels <- unique(phy$node.label[l_nodes[dup_l_nodes]])
+#   if (any(dup_l_nodes)) {
+#     stop(str_c("Cannot clone already-duplicated nodes: ",
+#                "`label` must not contain names of node labels ",
+#                "that occur more than once in `phy`.\n",
+#                "You supplied one or more labels that match ",
+#                "more than one node: ",
+#                str_c(head(dup_node_labels, 4), collapse = ","),
+#                ifelse(length(dup_node_labels) > 4, "..", ""), "."
+#     ))
+#   }
+#   
+#   label <- unique(label[label %in% phy$node.label])
+#   n_new <- length(label)
+#   
+#   if (n_new == 0) { return(phy) }
+#   
+#   n_edge <- Nedge(phy)
+#   n_tip <- Ntip(phy)
+#   n_node <- Nnode(phy)
+#   edges <- phy$edge
+#   new_edge <- matrix(NA, ncol = 2, nrow = n_edge + n_new)
+#   new_tip.label <- rep("", n_tip + n_new)
+#   new_edge.length <- rep(NA, n_edge + n_new)
+#   insert_e <- rep(NA, n_new)
+#   insert_t <- rep(NA, n_new)
+#   insert_e_length <- rep(NA, n_new)
+#   offset_e <- rep(0, n_edge)
+#   offset_t <- rep(0, n_tip)
+#   nodes <- rep(NA, n_new)
+#   
+#   # Work out how many positions to offset the current
+#   # edges and tips
+#   for (i in 1:n_new) {
+#     
+#     nodes[i] <- which(phy$node.label == label[i])
+#     u <- nodes[i] + Ntip(phy)
+#     
+#     u_edges <- which(edges[,1] == u)
+#     insert_e_length[i] <- max(phy$edge.length[u_edges])
+#     
+#     # Find the first edge from u. This is the row, before 
+#     # which to insert a new row in phy$edge etc.
+#     insert_e[i] <- min(u_edges) - 1
+#     # Update the offsets
+#     inc <- c(rep(0, insert_e[i]), rep(1, n_edge - insert_e[i]))
+#     offset_e <- offset_e + inc
+#     
+#     # Find previous tip in $edge. This is the tip number,
+#     # before which to insert a new tip in $tip.label etc.
+#     earlier_v <- edges[1:insert_e[i], 2]
+#     earlier_tip <- earlier_v[earlier_v <= n_tip]
+#     insert_t[i] <- max(c(0, earlier_tip))
+#     # Update the offsets
+#     inc <- c(rep(0, insert_t[i]), rep(1, n_tip - insert_t[i]))
+#     offset_t <- offset_t + inc
+#   }
+#   
+#   # What the old values in phy$edge map to:
+#   remap <- c((1:n_tip) + offset_t, (1:n_node) + n_tip + n_new)
+#   # Remap the old values to the right values and places:
+#   new_edge[(1:n_edge) + offset_e, ] <- remap[edges]
+#   new_edge.length[(1:n_edge) + offset_e] <- phy$edge.length
+#   new_tip.label[(1:n_tip) + offset_t] <- phy$tip.label
+#   
+#   # The insertion positions are now empty:
+#   empty_e <- sort(insert_e) + (1:n_new)
+#   empty_t <- sort(insert_t) + (1:n_new)
+#   # For empty edge rows, copy u from next row
+#   new_edge[empty_e, ] <- c(new_edge[empty_e + 1, 1], empty_t)
+#   new_edge.length[empty_e] <- insert_e_length
+#   # For empty tip labels, use node labels in order
+#   new_tip.label[empty_t] <- label[order(nodes)]
+#   
+#   new_tree <- list(
+#     edge = new_edge,
+#     Nnode = phy$Nnode,
+#     node.label = phy$node.label,
+#     tip.label = new_tip.label,
+#     edge.length = new_edge.length
+#   )
+#   class(new_tree) <- "phylo"
+#   
+#   new_tree$node.label[phy$node.label == "##NOLABEL##"] <- ""
+#   new_tree$tip.label[phy$tip.label == "##NOLABEL##"] <- ""
+#   
+#   new_tree
+# }
 
 
-#' Clone named tips
+#' Clone tips
 #'
 #' Clones tips as sisters of the original. Optionally, places the new clones and
-#' the original in ther own subgroup, in which case the node for the new
+#' the original in their own subgroup, in which case the node for the new
 #' subgroup is assigned the same label as the original tip.
 #'
 #' @param phy A phylo object. The tree to manipulate.

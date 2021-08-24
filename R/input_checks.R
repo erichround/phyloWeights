@@ -159,12 +159,17 @@
   }
   
   # This assumes phy is okay!
+  param <- "`label`"
   if (type == "tip") {
     extra_label <- setdiff(label, phy$tip.label)
     type_str <- "tip"
   } else if (type == "node") {
     extra_label <- setdiff(label, phy$node.label)
     type_str <- "node"
+  } else if (type == "parent") {
+    extra_label <- setdiff(label, phy$node.label)
+    type_str <- "node"
+    param <- "`parent_label`"
   } else if (type == "both") {
     extra_label <- setdiff(label, c(phy$tip.label, phy$node.label))
     type_str <- "tip and/or node"
@@ -173,7 +178,7 @@
   if (n_extra != 0) {
     return(list(
       error_msg = 
-        str_c("Elements of `label` should match ", type_str, 
+        str_c("Elements of ", param, " should match ", type_str, 
               " labels in `phy`.\n",
               "In the values you supplied, there are no matches for: ",
               str_c(head(extra_label, 4), collapse = ", "),
@@ -187,7 +192,7 @@
     return(list(
       error_msg = NA,
       warning_msg =
-        str_c("`label` contained duplicate entries for: ",
+        str_c(param, " contained duplicate entries for: ",
               str_c(head(dupl, 4), collapse = ", "),
               ifelse(length(dupl) > 4, "..", ""), ".\n",
               "These were treated as if just one copy had been provided.")
