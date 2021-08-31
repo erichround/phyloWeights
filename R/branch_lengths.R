@@ -6,7 +6,7 @@
 #' user-specified length.
 #'
 #' @param phy A phlyo object, the tree to manipulate.
-#' @param branch_length A numeric stating the branch length.
+#' @param length A numeric stating the branch length.
 #' @return A phlyo object, the manipulated tree.
 #' @examples 
 #' 
@@ -20,12 +20,12 @@
 #' # tree now contains five language families. All branch lengths are 1.
 #' # Set the deepest branch lengths to 5, implying a great genealogical
 #' # distance between the families within the tree.
-#' tree2 <- set_deepest_branch_lengths(tree, branch_length = 5)
+#' tree2 <- set_deepest_branch_lengths(tree, length = 5)
 #' plot(tree2)
 #' nodelabels(tree2$node.label)
-set_deepest_branch_lengths = function(
+rescale_deepest_branches = function(
   phy, 
-  branch_length = 1
+  length = 1
 ) {
   
   # Check phy
@@ -35,33 +35,36 @@ set_deepest_branch_lengths = function(
                "You supplied an object of class ", cp, "."))
   }
   
-  # Check branch_length
-  if (!is.numeric(branch_length)) {
-    cb <- class(branch_length)
-    stop(str_c("`branch_length` must be numeric.\n",
-               "You supplied an object of class ", cb, "."))
+  # Check length
+  if (!is.numeric(length)) {
+    cl <- class(length)
+    stop(str_c("`length` must be numeric.\n",
+               "You supplied an object of class ", cl, "."))
   }
-  if (length(branch_length) != 1) {
-    stop(str_c("`branch_length` must be length 1.\n",
-               "You supplied a vector length ", length(branch_length), "."))
+  if (length(length) != 1) {
+    stop(str_c("`length` must be a vector length 1.\n",
+               "You supplied a vector length ", length(length), "."))
   }
-  if (branch_length < 0) {
-    stop(str_c("`branch_length` must be non-negative.\n",
-               "You supplied the negative value ", branch_length, "."))
+  if (length < 0) {
+    stop(str_c("`length` must be non-negative.\n",
+               "You supplied the negative value ", length, "."))
   }
   
   root <- Ntip(phy) + 1
   first_edges <- which(phy$edge[,1] == root)
-  phy$edge.length[first_edges] <- branch_length
+  phy$edge.length[first_edges] <- length
   phy
 }
 
 
 #' Set all branch length to 1
 #' 
-#' Sets all branch lengths in a tree to 1.
+#' Sets all branch lengths in a tree to the same length.
+#' 
+#' By default, sets all branch lengths to 1.
 #' 
 #' @param phy A phlyo object, the tree to manipulate.
+#' @param length A numeric stating the branch length.
 #' @return A phlyo object, the manipulated tree.
 #' @examples 
 #' 
@@ -70,10 +73,13 @@ set_deepest_branch_lengths = function(
 #' tree2 <- clone_tip(tree, "nyan1300", n = 2, subgroup = TRUE)
 #' plot(tree2)
 #' nodelabels(tree2$node.label)
-#' tree3 <- set_branch_lengths_1(tree2)
+#' tree3 <- rescale_branches(tree2)
 #' plot(tree3)
 #' nodelabels(tree3$node.label)
-set_branch_lengths_1 = function(phy) {
+rescale_branches = function(
+  phy,
+  length = 1
+) {
   
   # Check phy
   if (class(phy) != "phylo") {
@@ -82,7 +88,22 @@ set_branch_lengths_1 = function(phy) {
                "You supplied an object of class ", cp, "."))
   }
   
-  phy$edge.length <- rep(1, Nedge(phy))
+  # Check length
+  if (!is.numeric(length)) {
+    cl <- class(length)
+    stop(str_c("`length` must be numeric.\n",
+               "You supplied an object of class ", cl, "."))
+  }
+  if (length(length) != 1) {
+    stop(str_c("`length` must be a vector length 1.\n",
+               "You supplied a vector length ", length(length), "."))
+  }
+  if (length < 0) {
+    stop(str_c("`length` must be non-negative.\n",
+               "You supplied the negative value ", length, "."))
+  }
+  
+  phy$edge.length <- rep(length, Nedge(phy))
   phy
 }
 
@@ -90,26 +111,46 @@ set_branch_lengths_1 = function(phy) {
 #' Exponentialize branch lengths
 #'
 #' Sets the deepest branches to length 1/2, the next deepest to 1/4, the next to
-#' 1/8, etc.
+#' 1/8, etc., all multiplied by the parameter \code{length}.
 #'
 #' @param phy A phlyo object, the tree to manipulate.
+#' @param length A positive numeric, a multiplier for the exponential branch
+#'   lengths 1/2, 1/4, 1/8...
 #' @return A phlyo object, the manipulated tree.
-#' @examples 
-#' 
+#' @examples
+#'
 #' library(ape)
 #' tree <- abridge_labels(get_glottolog_trees("Siouan"))
 #' plot(tree)
 #' nodelabels(tree$node.label)
-#' tree2 <- set_branch_lengths_exp(tree)
+#' tree2 <- rescale_branches_exp(tree)
 #' plot(tree2)
 #' nodelabels(tree2$node.label)
-set_branch_lengths_exp = function(phy) {
+rescale_branches_exp = function(
+  phy,
+  length = 1
+) {
   
   # Check phy
   if (class(phy) != "phylo") {
     cp <- class(phy)
     stop(str_c("`phy` must be of class phylo.\n",
                "You supplied an object of class ", cp, "."))
+  }
+  
+  # Check length
+  if (!is.numeric(length)) {
+    cl <- class(length)
+    stop(str_c("`length` must be numeric.\n",
+               "You supplied an object of class ", cl, "."))
+  }
+  if (length(length) != 1) {
+    stop(str_c("`length` must be a vector length 1.\n",
+               "You supplied a vector length ", length(length), "."))
+  }
+  if (length < 0) {
+    stop(str_c("`length` must be non-negative.\n",
+               "You supplied the negative value ", length, "."))
   }
   
   nonroot <- phy$edge[,2]
@@ -119,7 +160,7 @@ set_branch_lengths_exp = function(phy) {
   depth <- node.depth.edgelength(phy)[nonroot]
   
   # Assign new branch length according to depth
-  phy$edge.length <- (1/2) ^ depth
+  phy$edge.length <- length * (0.5 ^ depth)
   phy
 }
 
@@ -129,15 +170,13 @@ set_branch_lengths_exp = function(phy) {
 #' Alters branches ending in a tip in such a way that all tips are equidistant
 #' from the root. Does this by lengthening branches above all but the existing,
 #' most-distance tip(s).
-#' 
-#' Identical to \code{\link{ultrametricise}}.
 #'
 #' @param phy A phlyo object, the tree to manipulate.
 #' @return A phlyo object, the manipulated tree.
 #' @examples 
 #' 
 #' library(ape)
-#' tree <- set_branch_lengths_exp(abridge_labels(get_glottolog_trees("Siouan")))
+#' tree <- rescale_branches_exp(abridge_labels(get_glottolog_trees("Siouan")))
 #' plot(tree)
 #' nodelabels(tree$node.label)
 #' tree2 <- ultrametricize(tree)

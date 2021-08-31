@@ -242,7 +242,7 @@ phylo_average = function(
 #' 
 #' tree4 <- abridge_labels(get_glottolog_trees("Surmic"))
 #' plot(tree4)
-#' tree5 <- ultrametricize(set_branch_lengths_exp(tree4))
+#' tree5 <- ultrametricize(rescale_branches_exp(tree4))
 #' plot(tree5)
 #' ACL(tree4)
 #' ACL(tree5)
@@ -289,7 +289,7 @@ ACL = function(phy) {
 #' 
 #' tree4 <- abridge_labels(get_glottolog_trees("Surmic"))
 #' plot(tree4)
-#' tree5 <- ultrametricize(set_branch_lengths_exp(tree4))
+#' tree5 <- ultrametricize(rescale_branches_exp(tree4))
 #' plot(tree5)
 #' BM(tree4)
 #' BM(tree5)
