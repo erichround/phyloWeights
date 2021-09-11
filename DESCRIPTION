@@ -1,11 +1,11 @@
-Package: PhyloWeights
+Package: phyloWeights
 Type: Package
 Title: Genealogically-sensitive Proportions and Averages in Linguistics
-Version: 0.2.0004
+Version: 0.3.0001
 Author: Erich Round
 Maintainer: Erich Round <e.round@uq.edu.au>
-Description: Calculation of genealogically-sensitive proportions and averages, and
-    preparation of phylogenetic trees by adapting resources from glottolog.com.
+Description: Calculation of genealogically-sensitive proportions and averages 
+    using the classic ACL method and Stone & Sidow's BranchMatser
 License: CC-BY
 Encoding: UTF-8
 LazyData: true
@@ -16,14 +16,10 @@ Imports:
     stringr,
     tidyr
 Collate: 
-    'branch_lengths.R'
     'data.R'
-    'input_checks.R'
-    'labels.R'
-    'metadata.R'
-    'topology.R'
     'weights.R'
-    'zzz.R'
 RoxygenNote: 7.1.1
 Suggests: 
     testthat
+Depends: 
+    R (>= 2.10)
