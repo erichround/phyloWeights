@@ -27,7 +27,7 @@
 #'   representing one or more hypotheses on the phylogenetic relatedness of a
 #'   set of languages.
 #' @param data A dataframe, containing data on the languages. Must contain a
-#'   column \code{language}, whose contents match the tip labels in \code{phy},
+#'   column \code{tip}, whose contents match the tip labels in \code{phy},
 #'   and at least one column of numerical data.
 #' @return A list, containing phy, data, and dataframes: ACL_weights,
 #'   BM_weights, ACL_averages, BM_averages
@@ -35,9 +35,9 @@
 #' 
 #' library(ape)
 #' 
-#' # A dataframe of language data, with columns: language, is_SOV, n_consonants
+#' # A dataframe of language data, with columns: tip, is_SOV, n_consonants
 #' dat <- data.frame(
-#'   language = c("A", "B", "C", "D"), 
+#'   tip = c("A", "B", "C", "D"), 
 #'   is_SOV = c(1, 1, 1, 0),
 #'   n_consonants = c(18, 20, 22, 40))
 #' # Three trees, representing three genealogical hypotheses, that relate
@@ -74,25 +74,25 @@ phylo_average = function(
                "You supplied an object of class ", cd, "."))
   }
   col_name <- colnames(data)
-  # Check the language column
-  if (!("language" %in% col_name)) {
-    stop("Can't find column `language` in `data`.")
+  # Check the tip column
+  if (!("tip" %in% col_name)) {
+    stop("Can't find column `tip` in `data`.")
   } else {
-    if (is.factor(data$language)) {
-      data$language <- as.character(data$language)
+    if (is.factor(data$tip)) {
+      data$tip <- as.character(data$tip)
     } else {
-      cl <- class(data$language) 
-      if (!is.character(data$language)) {
-        stop(str_c("Column `language` in `data` must contain character ",
+      cl <- class(data$tip) 
+      if (!is.character(data$tip)) {
+        stop(str_c("Column `tip` in `data` must contain character ",
                    "strings.\n You supplied a column of class ", cl, "."))
       }
     }
-    is_dupl <- duplicated(data$language) 
+    is_dupl <- duplicated(data$tip) 
     if (any(is_dupl)) {
       stop(
-        str_c("`Column `language` in `data` must not contain duplicates.\n",
+        str_c("`Column `tip` in `data` must not contain duplicates.\n",
               "You supplied duplicates of: ",
-              str_c(head(unique(data$language[is_dupl]), 4), collapse = ", "),
+              str_c(head(unique(data$tip[is_dupl]), 4), collapse = ", "),
               ifelse(sum(is_dupl) > 4, "..", ""), ".")
       )
     }
@@ -105,11 +105,11 @@ phylo_average = function(
     stop(str_c("`data` must contain at least one numeric column.\n",
                "You supplied a data frame with no numeric columns."))
   }
-  is_extra_col <- !is_num_col & (col_name != "language")
+  is_extra_col <- !is_num_col & (col_name != "tip")
   if (any(is_extra_col)) {
     warning(
       str_c("`data` contains non-numeric columns other than",
-            " `language`, which have been ignored: ",
+            " `tip`, which have been ignored: ",
             str_c(head(col_name[is_extra_col], 4), collapse = ", "),
             ifelse(sum(is_extra_col) > 4, "..", ""), ".")
     )
@@ -149,21 +149,21 @@ phylo_average = function(
               ifelse(length(dupl) > 4, "..", ""), ".")
       )
     }
-    extra <- setdiff(phy$tip.label, data$language)
+    extra <- setdiff(phy$tip.label, data$tip)
     if (length(extra) > 0) {
       stop(
         str_c("In ", each_phy, ", all tips must be represented in ",
-              "the `language` column of `data`.\n",
+              "the `tip` column of `data`.\n",
               "There is no match in `data` for: ",
               str_c(head(extra, 4), collapse = ", "),
               ifelse(length(extra) > 4, "...", ""), " in ", phy_str, ".")
       )
     }
-    missing <- setdiff(phy$tip.label, data$language)
+    missing <- setdiff(phy$tip.label, data$tip)
     if (length(missing) > 0) {
       stop(
         str_c(Each_phy, " must have a tip for every value in ",
-              "the `language` column of `data`.\n",
+              "the `tip` column of `data`.\n",
               "In ", phy_str, "there is no tip that matches: ",
               str_c(head(missing, 4), collapse = ", "),
               ifelse(length(missing) > 4, "..", ""), ".")
@@ -172,19 +172,19 @@ phylo_average = function(
   }
   
   # Get weights
-  ACL_weights <- BM_weights <- data %>% select(language)
+  ACL_weights <- BM_weights <- data %>% select(tip)
   for (i in 1:length(phy)) {
-    ACL_i <- data.frame(x = ACL(phy[[i]]), language = phy[[i]]$tip.label)
-    BM_i  <- data.frame(x = BM(phy[[i]]),  language = phy[[i]]$tip.label)
+    ACL_i <- data.frame(x = ACL(phy[[i]]), tip = phy[[i]]$tip.label)
+    BM_i  <- data.frame(x = BM(phy[[i]]),  tip = phy[[i]]$tip.label)
     colnames(ACL_i)[1] <- colnames(BM_i)[1] <-  str_c("tree", i)
-    ACL_weights <- left_join(ACL_weights, ACL_i, by = "language")
-    BM_weights  <- left_join(BM_weights,  BM_i,  by = "language")
+    ACL_weights <- left_join(ACL_weights, ACL_i, by = "tip")
+    BM_weights  <- left_join(BM_weights,  BM_i,  by = "tip")
   }
   
   # Calculate averages using matrix multiplication
   data_mat <- t(as.matrix(data_numeric))
-  ACL_mat <- as.matrix(ACL_weights %>% select(-language))
-  BM_mat  <- as.matrix(BM_weights  %>% select(-language))
+  ACL_mat <- as.matrix(ACL_weights %>% select(-tip))
+  BM_mat  <- as.matrix(BM_weights  %>% select(-tip))
   ACL_ave_mat <- t(data_mat %*% ACL_mat)
   BM_ave_mat  <- t(data_mat %*% BM_mat)
   
@@ -201,8 +201,8 @@ phylo_average = function(
     c("tree", colnames(data_numeric))
   rownames(ACL_averages) <- rownames(BM_averages) <- 
     rownames(ACL_weights) <- rownames(BM_weights) <- NULL
-  ACL_weights <- left_join(data_nonnumeric, ACL_weights, by = "language") 
-  BM_weights  <- left_join(data_nonnumeric, BM_weights,  by = "language")
+  ACL_weights <- left_join(data_nonnumeric, ACL_weights, by = "tip") 
+  BM_weights  <- left_join(data_nonnumeric, BM_weights,  by = "tip")
   
   # Return results
   list(
