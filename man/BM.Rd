@@ -32,15 +32,8 @@ tree2 <- read.tree(text = "(((A:0.2,B:0.2,C:0.2):1.8,D:2):0.3);")
 plot(tree2)
 tree3 <- read.tree(text = "(((A:1.8,B:1.8,C:1.8):0.2,D:2):0.3);")
 plot(tree2)
-# The ACL weights of each language in each tree:
+# The BM weights of each language in each tree:
 BM(tree1)
 BM(tree2)
 BM(tree3)
-
-tree4 <- abridge_labels(get_glottolog_trees("Surmic"))
-plot(tree4)
-tree5 <- ultrametricize(rescale_branches_exp(tree4))
-plot(tree5)
-BM(tree4)
-BM(tree5)
 }

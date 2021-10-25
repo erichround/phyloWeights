@@ -32,11 +32,4 @@ plot(tree2)
 ACL(tree1)
 ACL(tree2)
 ACL(tree3)
-
-tree4 <- abridge_labels(get_glottolog_trees("Surmic"))
-plot(tree4)
-tree5 <- ultrametricize(rescale_branches_exp(tree4))
-plot(tree5)
-ACL(tree4)
-ACL(tree5)
 }

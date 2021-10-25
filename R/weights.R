@@ -54,10 +54,7 @@
 #' # weighted proportions
 #' p_ave$ACL_averages
 #' p_ave$BM_averages
-phylo_average = function(
-  phy = NULL,
-  data = NULL
-) {
+phylo_average = function(phy, data) {
 
   # Check phy class
   if (class(phy) != "phylo" & 
@@ -239,13 +236,6 @@ phylo_average = function(
 #' ACL(tree1)
 #' ACL(tree2)
 #' ACL(tree3)
-#' 
-#' tree4 <- abridge_labels(get_glottolog_trees("Surmic"))
-#' plot(tree4)
-#' tree5 <- ultrametricize(rescale_branches_exp(tree4))
-#' plot(tree5)
-#' ACL(tree4)
-#' ACL(tree5)
 ACL = function(phy) {
   
   # Check phy
@@ -282,17 +272,10 @@ ACL = function(phy) {
 #' plot(tree2)
 #' tree3 <- read.tree(text = "(((A:1.8,B:1.8,C:1.8):0.2,D:2):0.3);")
 #' plot(tree2)
-#' # The ACL weights of each language in each tree:
+#' # The BM weights of each language in each tree:
 #' BM(tree1)
 #' BM(tree2)
 #' BM(tree3)
-#' 
-#' tree4 <- abridge_labels(get_glottolog_trees("Surmic"))
-#' plot(tree4)
-#' tree5 <- ultrametricize(rescale_branches_exp(tree4))
-#' plot(tree5)
-#' BM(tree4)
-#' BM(tree5)
 BM <- function(phy) {
   
   # Check phy
@@ -322,7 +305,8 @@ BM <- function(phy) {
     totallength <- totallength + curedgelen
   }
   W <- W/totallength
-  W
+  W_order <- match(phy$tip.label, names(W))
+  W[W_order]
 }
 
 

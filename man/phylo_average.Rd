@@ -4,7 +4,7 @@
 \alias{phylo_average}
 \title{Phylogenetically-weighted averages}
 \usage{
-phylo_average(phy = NULL, data = NULL)
+phylo_average(phy, data)
 }
 \arguments{
 \item{phy}{A phylo or multiPhylo object, containing one or more trees,
@@ -12,7 +12,7 @@ representing one or more hypotheses on the phylogenetic relatedness of a
 set of languages.}
 
 \item{data}{A dataframe, containing data on the languages. Must contain a
-column \code{language}, whose contents match the tip labels in \code{phy},
+column \code{tip}, whose contents match the tip labels in \code{phy},
 and at least one column of numerical data.}
 }
 \value{
@@ -46,9 +46,9 @@ with phylogenetically-sensitive averages obtained using the BM method.
 
 library(ape)
 
-# A dataframe of language data, with columns: language, is_SOV, n_consonants
+# A dataframe of language data, with columns: tip, is_SOV, n_consonants
 dat <- data.frame(
-  language = c("A", "B", "C", "D"), 
+  tip = c("A", "B", "C", "D"), 
   is_SOV = c(1, 1, 1, 0),
   n_consonants = c(18, 20, 22, 40))
 # Three trees, representing three genealogical hypotheses, that relate
