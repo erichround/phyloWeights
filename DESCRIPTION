@@ -1,12 +1,12 @@
 Package: phyloWeights
 Type: Package
 Title: Genealogically-sensitive Proportions and Averages in Linguistics
-Version: 0.3.0004
+Version: 0.3.0005
 Author: Erich Round
 Maintainer: Erich Round <e.round@uq.edu.au>
 Description: Calculation of genealogically-sensitive proportions and averages 
-    using the classic ACL method and Stone & Sidow's BranchMatser
-License: CC-BY
+    using the classic ACL method and Stone & Sidow's BranchManager.
+License: CC BY 4.0
 Encoding: UTF-8
 LazyData: true
 Imports:
