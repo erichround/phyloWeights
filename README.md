@@ -16,7 +16,7 @@ To report problems, please use the Issues function on this github page, or email
 
 To cite phyloWeights in publications use:
 
-  Round, Erich R. (2021) phyloWeights: Calculation of Genealogically-sensitive Proportions and Averages. R package version 0.3 URL https://github.com/erichround/phyloWeights
+  Round, Erich R. (2023) phyloWeights: Calculation of Genealogically-sensitive Proportions and Averages. R package version 0.4 URL https://github.com/erichround/phyloWeights
 
 A BibTeX entry for LaTeX users is
 
@@ -24,8 +24,8 @@ A BibTeX entry for LaTeX users is
   @Manual{phyloWeights,
     title = {{phyloWeights}: Calculation of Genealogically-sensitive Proportions and Averages},
     author = {Erich R. Round},
-    year = {2021},
-    note = {R package version 0.3},
+    year = {2023},
+    note = {R package version 0.4},
     url = {https://github.com/erichround/phyloWeights},
   }
 ```

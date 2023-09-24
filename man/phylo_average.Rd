@@ -4,7 +4,7 @@
 \alias{phylo_average}
 \title{Phylogenetically-weighted averages}
 \usage{
-phylo_average(phy, data)
+phylo_average(phy, data, na.rm = FALSE)
 }
 \arguments{
 \item{phy}{A phylo or multiPhylo object, containing one or more trees,
@@ -12,8 +12,12 @@ representing one or more hypotheses on the phylogenetic relatedness of a
 set of languages.}
 
 \item{data}{A dataframe, containing data on the languages. Must contain a
-column \code{tip}, whose contents match the tip labels in \code{phy},
-and at least one column of numerical data.}
+column \code{tip}, whose contents match the tip labels in \code{phy}, and
+at least one column of numerical data.}
+
+\item{na.rm}{A logical. Whether to ignore languages with NA values in the
+data. If TRUE then for each column of data, tips with NA values are
+ignored and the weights of the remaining tips are re-scaled to sum to 1.}
 }
 \value{
 A list, containing phy, data, and dataframes: ACL_weights,
@@ -48,7 +52,7 @@ library(ape)
 
 # A dataframe of language data, with columns: tip, is_SOV, n_consonants
 dat <- data.frame(
-  tip = c("A", "B", "C", "D"), 
+  tip = c("A", "B", "C", "D"),
   is_SOV = c(1, 1, 1, 0),
   n_consonants = c(18, 20, 22, 40))
 # Three trees, representing three genealogical hypotheses, that relate

@@ -27,17 +27,20 @@
 #'   representing one or more hypotheses on the phylogenetic relatedness of a
 #'   set of languages.
 #' @param data A dataframe, containing data on the languages. Must contain a
-#'   column \code{tip}, whose contents match the tip labels in \code{phy},
-#'   and at least one column of numerical data.
+#'   column \code{tip}, whose contents match the tip labels in \code{phy}, and
+#'   at least one column of numerical data.
+#' @param na.rm A logical. Whether to ignore languages with NA values in the
+#'   data. If TRUE then for each column of data, tips with NA values are
+#'   ignored and the weights of the remaining tips are re-scaled to sum to 1.
 #' @return A list, containing phy, data, and dataframes: ACL_weights,
 #'   BM_weights, ACL_averages, BM_averages
-#' @examples 
-#' 
+#' @examples
+#'
 #' library(ape)
-#' 
+#'
 #' # A dataframe of language data, with columns: tip, is_SOV, n_consonants
 #' dat <- data.frame(
-#'   tip = c("A", "B", "C", "D"), 
+#'   tip = c("A", "B", "C", "D"),
 #'   is_SOV = c(1, 1, 1, 0),
 #'   n_consonants = c(18, 20, 22, 40))
 #' # Three trees, representing three genealogical hypotheses, that relate
@@ -54,7 +57,7 @@
 #' # weighted proportions
 #' p_ave$ACL_averages
 #' p_ave$BM_averages
-phylo_average = function(phy, data) {
+phylo_average = function(phy, data, na.rm = FALSE) {
 
   # Check phy class
   if (class(phy) != "phylo" & 
@@ -178,12 +181,30 @@ phylo_average = function(phy, data) {
     BM_weights  <- left_join(BM_weights,  BM_i,  by = "tip")
   }
   
-  # Calculate averages using matrix multiplication
+  # Calculate averages 
   data_mat <- t(as.matrix(data_numeric))
   ACL_mat <- as.matrix(ACL_weights %>% select(-tip))
   BM_mat  <- as.matrix(BM_weights  %>% select(-tip))
+  # Use matrix multiplication
   ACL_ave_mat <- t(data_mat %*% ACL_mat)
   BM_ave_mat  <- t(data_mat %*% BM_mat)
+  has_na <- apply(data_mat, 1, function(i) any(is.na(i)))
+  if (na.rm & any(has_na)) {
+    # Use loops for data columns with NAs
+    for (d in which(has_na)) {
+      dat_d <- data_mat[d, ]
+      is_good <- !is.na(dat_d)
+      if (any(is_good)) {
+        dat_good <- dat_d[is_good]
+        for (p in 1:n_tree) {
+          wt_ACL_good <- ACL_mat[, p][is_good]
+          wt_BM_good <- BM_mat[, p][is_good]
+          ACL_ave_mat[p, d] <- sum(dat_good * wt_ACL_good) / sum(wt_ACL_good)
+          BM_ave_mat[p, d] <- sum(dat_good * wt_BM_good) / sum(wt_BM_good)
+        }
+      }
+    }
+  }
   
   # Prepare results as dataframes
   ACL_averages <- 
